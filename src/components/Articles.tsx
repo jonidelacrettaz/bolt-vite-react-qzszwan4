@@ -15,7 +15,7 @@ interface Article {
   pre_net: number;
   mar: number;
   prv: number;
-  fot_url?: string; // Field for images
+  fot_url?: string;
 }
 
 interface ArticlesResponse {
@@ -70,17 +70,13 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       console.log('API Response:', data);
       console.log('Total articles from API:', data.art_prv_web_dis.length);
       
-      // Create a Set to track unique article IDs we've seen
       const seenIds = new Set<number>();
       
-      // Filter out duplicates based on ID
       const uniqueArticles = data.art_prv_web_dis.filter(article => {
-        // If we haven't seen this ID before, add it to the set and keep the article
         if (!seenIds.has(article.id)) {
           seenIds.add(article.id);
           return true;
         }
-        // If we've seen this ID before, filter it out
         return false;
       });
       
@@ -108,10 +104,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
   };
 
   useEffect(() => {
-    // Apply filters and search
     let result = [...articles];
 
-    // Apply search
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(
@@ -123,7 +117,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       );
     }
 
-    // Apply stock filter
     if (stockFilter !== 'all') {
       if (stockFilter === 'inStock') {
         result = result.filter(article => article.stk_con > 0);
@@ -136,7 +129,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       }
     }
 
-    // Apply sorting
     result.sort((a, b) => {
       let comparison = 0;
       
@@ -154,17 +146,13 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     setFilteredArticles(result);
   }, [articles, searchTerm, stockFilter, sortBy, sortOrder]);
 
-  // Get the position 1 image URL from the comma-separated list
-  // If no position 1 image is found, return the first URL in the list
   const getPosition1ImageUrl = (fotUrl?: string): string | null => {
     if (!fotUrl) return null;
     
     const urls = fotUrl.split(',');
     
-    // Look for an image with "_1_" in the filename (position 1)
     const position1Image = urls.find(url => url.includes('_1_'));
     
-    // If position 1 image is found, return it, otherwise return the first URL
     if (position1Image) {
       return position1Image.trim();
     } else if (urls.length > 0) {
@@ -174,7 +162,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     return null;
   };
 
-  // Get all image URLs from the comma-separated list
   const getAllImageUrls = (fotUrl?: string): string[] => {
     if (!fotUrl) return [];
     
@@ -183,9 +170,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       .filter(url => url.length > 0);
   };
 
-  // Check if an image is valid (exists and can be loaded)
   const checkImageValidity = (imageUrl: string, callback: (isValid: boolean) => void) => {
-    // If we already checked this image, use cached result
     if (validImageCache[imageUrl] !== undefined) {
       callback(validImageCache[imageUrl]);
       return;
@@ -259,7 +244,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     }
   };
 
-  // Get stock status class and text
   const getStockStatus = (stock: number) => {
     if (stock === 0) {
       return {
@@ -282,7 +266,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     }
   };
 
-  // Image component with error handling
   const ProductImage = ({ imageUrl, articleName }: { imageUrl: string, articleName: string }) => {
     const [isValid, setIsValid] = useState<boolean | null>(null);
     
@@ -293,7 +276,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     }, [imageUrl]);
     
     if (isValid === null) {
-      // Loading state
       return (
         <div className="image-loading">
           <div className="image-spinner"></div>
@@ -302,7 +284,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     }
     
     if (!isValid) {
-      // Invalid image
       return (
         <div className="no-image">
           <ImageIcon size={24} />
@@ -310,7 +291,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       );
     }
     
-    // Valid image
     return (
       <img 
         src={imageUrl} 
@@ -437,80 +417,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
         </div>
       )}
       
-      {/* Mobile Card View */}
-      <div className="mobile-card-view">
-        {filteredArticles.length === 0 ? (
-          <div className="text-center p-4">
-            No hay artículos que coincidan con los criterios de búsqueda
-          </div>
-        ) : (
-          filteredArticles.map((article) => {
-            const imageUrl = getPosition1ImageUrl(article.fot_url);
-            const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
-            const stockStatus = getStockStatus(article.stk_con);
-            
-            return (
-              <div key={article.id} className="article-card">
-                <div className="article-card-header">
-                  <div className="article-card-image">
-                    {imageUrl ? (
-                      <ProductImage imageUrl={imageUrl} articleName={article.name} />
-                    ) : (
-                      <div className="no-image">
-                        <ImageIcon size={24} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="article-card-title">
-                    <span>{article.name}</span>
-                    <span className={stockStatus.badgeClass}>{stockStatus.text}</span>
-                  </div>
-                </div>
-                
-                <div className="article-card-details">
-                  <div className="article-card-detail">
-                    <span className="article-card-label">SKU</span>
-                    <span className="article-card-value">{article.ref}</span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">SKU Prov.</span>
-                    <span className="article-card-value">{article.sku_prv}</span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">Stock Compartido</span>
-                    <span className={`article-card-value ${stockStatus.className}`}>
-                      {formatNumber(article.stk_con)}
-                    </span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">Costo Neto</span>
-                    <span className="article-card-value">{formatCurrency(article.cos_net)}</span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">Precio Neto</span>
-                    <span className="article-card-value">{formatCurrency(article.pre_net)}</span>
-                  </div>
-                </div>
-                
-                {hasMultipleImages && (
-                  <div className="article-card-actions">
-                    <button 
-                      className="view-more-images" 
-                      onClick={() => openImageModal(article)}
-                      title="Ver más imágenes"
-                    >
-                      <Eye size={16} />
-                      <span>Ver imágenes</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-      
-      {/* Desktop Table View */}
       <div className="table-container">
         <table className="articles-table">
           <thead className="table-header">
@@ -529,7 +435,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
               <th className="table-header-cell">Pte. recibir</th>
               <th className="table-header-cell">Stock Vendido</th>
               <th className="table-header-cell">Costo neto</th>
-              <th className="table-header-cell">Precio neto</th>
+              <th className="table-header-cell">PVP</th>
               <th className="table-header-cell">Markup</th>
             </tr>
           </thead>
@@ -545,6 +451,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                 const imageUrl = getPosition1ImageUrl(article.fot_url);
                 const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
                 const stockStatus = getStockStatus(article.stk_con);
+                const pvp = article.pre_net * 1.21;
                 
                 return (
                   <tr key={article.id} className="table-row">
@@ -595,7 +502,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                       {formatCurrency(article.cos_net)}
                     </td>
                     <td className="table-cell">
-                      {formatCurrency(article.pre_net)}
+                      {formatCurrency(pvp)}
                     </td>
                     <td className="table-cell">
                       {formatPercentage(article.mar)}
@@ -608,7 +515,79 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
         </table>
       </div>
 
-      {/* Enhanced Image Modal */}
+      <div className="mobile-card-view">
+        {filteredArticles.length === 0 ? (
+          <div className="text-center p-4">
+            No hay artículos que coincidan con los criterios de búsqueda
+          </div>
+        ) : (
+          filteredArticles.map((article) => {
+            const imageUrl = getPosition1ImageUrl(article.fot_url);
+            const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
+            const stockStatus = getStockStatus(article.stk_con);
+            const pvp = article.pre_net * 1.21;
+            
+            return (
+              <div key={article.id} className="article-card">
+                <div className="article-card-header">
+                  <div className="article-card-image">
+                    {imageUrl ? (
+                      <ProductImage imageUrl={imageUrl} articleName={article.name} />
+                    ) : (
+                      <div className="no-image">
+                        <ImageIcon size={24} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="article-card-title">
+                    <span>{article.name}</span>
+                    <span className={stockStatus.badgeClass}>{stockStatus.text}</span>
+                  </div>
+                </div>
+                
+                <div className="article-card-details">
+                  <div className="article-card-detail">
+                    <span className="article-card-label">SKU</span>
+                    <span className="article-card-value">{article.ref}</span>
+                  </div>
+                  <div className="article-card-detail">
+                    <span className="article-card-label">SKU Prov.</span>
+                    <span className="article-card-value">{article.sku_prv}</span>
+                  </div>
+                  <div className="article-card-detail">
+                    <span className="article-card-label">Stock Compartido</span>
+                    <span className={`article-card-value ${stockStatus.className}`}>
+                      {formatNumber(article.stk_con)}
+                    </span>
+                  </div>
+                  <div className="article-card-detail">
+                    <span className="article-card-label">Costo Neto</span>
+                    <span className="article-card-value">{formatCurrency(article.cos_net)}</span>
+                  </div>
+                  <div className="article-card-detail">
+                    <span className="article-card-label">PVP</span>
+                    <span className="article-card-value">{formatCurrency(pvp)}</span>
+                  </div>
+                </div>
+                
+                {hasMultipleImages && (
+                  <div className="article-card-actions">
+                    <button 
+                      className="view-more-images" 
+                      onClick={() => openImageModal(article)}
+                      title="Ver más imágenes"
+                    >
+                      <Eye size={16} />
+                      <span>Ver imágenes</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {showImageModal && selectedArticle && (
         <div className="modal-overlay" onClick={closeImageModal}>
           <div className="enhanced-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -696,8 +675,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                   <span className="detail-value">{formatCurrency(selectedArticle.cos_net)}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="detail-label">Precio Neto:</span>
-                  <span className="detail-value">{formatCurrency(selectedArticle.pre_net)}</span>
+                  <span className="detail-label">PVP:</span>
+                  <span className="detail-value">{formatCurrency(selectedArticle.pre_net * 1.21)}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Markup:</span>
