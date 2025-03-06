@@ -36,7 +36,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [stockFilter, setStockFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortColumn, setSortColumn] = useState<keyof Article>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -48,9 +48,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
   const [retryCount, setRetryCount] = useState(0);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 3000; // 3 segundos
+  const RETRY_DELAY = 3000;
 
-  // Monitor de estado de conexión
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -84,7 +83,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ proveedor: providerId }),
-          signal: AbortSignal.timeout(10000), // Timeout de 10 segundos
+          signal: AbortSignal.timeout(10000),
         }
       );
 
@@ -109,7 +108,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       
       setArticles(uniqueArticles);
       setFilteredArticles(uniqueArticles);
-      setRetryCount(0); // Resetear contador de reintentos
+      setRetryCount(0);
     } catch (err) {
       const error = err as Error;
       let errorMessage = 'Error al cargar los artículos.';
@@ -131,7 +130,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       setError(errorMessage);
       console.error('Error al cargar artículos:', error);
 
-      // Lógica de reintento automático
       if (retry && retryCount < MAX_RETRIES) {
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
@@ -145,15 +143,14 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
   }, [providerId, retryCount, isOffline]);
 
   useEffect(() => {
-    fetchArticles(true); // Habilitar reintentos automáticos en la carga inicial
+    fetchArticles(true);
   }, [fetchArticles]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchArticles(false); // Sin reintentos autom áticos en refresh manual
+    fetchArticles(false);
   };
 
-  // Componente de estado de error de conexión
   const ConnectionErrorState = () => {
     if (!connectionError) return null;
 
@@ -268,17 +265,17 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     return `${num.toFixed(2)}%`;
   };
 
-  const handleSortChange = (column: string) => {
-    if (sortBy === column) {
+  const handleSort = (column: keyof Article) => {
+    if (sortColumn === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortBy(column);
+      setSortColumn(column);
       setSortOrder('asc');
     }
   };
 
   const getSortIndicator = (column: string) => {
-    if (sortBy !== column) return null;
+    if (sortColumn !== column) return null;
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
@@ -310,23 +307,11 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
 
   const getStockStatus = (stock: number) => {
     if (stock === 0) {
-      return {
-        className: 'out-of-stock',
-        badgeClass: 'stock-badge out-of-stock',
-        text: 'Sin stock'
-      };
+      return { text: 'Sin stock' };
     } else if (stock < 5) {
-      return {
-        className: 'low-stock',
-        badgeClass: 'stock-badge low-stock',
-        text: 'Stock bajo'
-      };
+      return { text: 'Stock bajo' };
     } else {
-      return {
-        className: '',
-        badgeClass: 'stock-badge in-stock',
-        text: 'En stock'
-      };
+      return { text: 'En stock' };
     }
   };
 
@@ -393,19 +378,46 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     result.sort((a, b) => {
       let comparison = 0;
       
-      if (sortBy === 'name') {
-        comparison = a.name.localeCompare(b.name);
-      } else if (sortBy === 'stock') {
-        comparison = a.stk_con - b.stk_con;
-      } else if (sortBy === 'price') {
-        comparison = a.pre_net - b.pre_net;
+      switch (sortColumn) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'ref':
+          comparison = a.ref.localeCompare(b.ref);
+          break;
+        case 'sku_prv':
+          comparison = a.sku_prv.localeCompare(b.sku_prv);
+          break;
+        case 'stk_con':
+          comparison = a.stk_con - b.stk_con;
+          break;
+        case 'dep':
+          comparison = a.dep - b.dep;
+          break;
+        case 'pdt_rec':
+          comparison = a.pdt_rec - b.pdt_rec;
+          break;
+        case 'stk_con_ven':
+          comparison = a.stk_con_ven - b.stk_con_ven;
+          break;
+        case 'cos_net':
+          comparison = a.cos_net - b.cos_net;
+          break;
+        case 'pre_net':
+          comparison = a.pre_net - b.pre_net;
+          break;
+        case 'mar':
+          comparison = a.mar - b.mar;
+          break;
+        default:
+          comparison = 0;
       }
       
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     setFilteredArticles(result);
-  }, [articles, searchTerm, stockFilter, sortBy, sortOrder]);
+  }, [articles, searchTerm, stockFilter, sortColumn, sortOrder]);
 
   if (loading && !refreshing) {
     return (
@@ -478,7 +490,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       {showFilters && (
         <div className="filters-panel">
           <div className="filter-group">
-            <label className="filter-label">Stock Compartido:</label>
+            <label className="filter-label">Stock:</label>
             <select 
               value={stockFilter} 
               onChange={(e) => setStockFilter(e.target.value)}
@@ -489,31 +501,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
               <option value="outOfStock">Sin stock</option>
               <option value="lowStock">Stock bajo (&lt; 5)</option>
               <option value="highStock">Stock alto (≥ 5)</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label className="filter-label">Ordenar por:</label>
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value)}
-              className="filter-select"
-            >
-              <option value="name">Nombre</option>
-              <option value="stock">Stock</option>
-              <option value="price">Precio</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label className="filter-label">Orden:</label>
-            <select 
-              value={sortOrder} 
-              onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-              className="filter-select"
-            >
-              <option value="asc">Ascendente</option>
-              <option value="desc">Descendente</option>
             </select>
           </div>
         </div>
@@ -535,21 +522,66 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
           <thead className="table-header">
             <tr>
               <th className="table-header-cell">Imagen</th>
-              <th className="table-header-cell">SKU</th>
-              <th className="table-header-cell">SKU prov.</th>
-              <th className="table-header-cell">Nombre</th>
               <th 
                 className="table-header-cell sortable"
-                onClick={() => handleSortChange('stock')}
+                onClick={() => handleSort('ref')}
               >
-                Stock Compartido {getSortIndicator('stock')}
+                SKU {getSortIndicator('ref')}
               </th>
-              <th className="table-header-cell">Depósito</th>
-              <th className="table-header-cell">Pte. recibir</th>
-              <th className="table-header-cell">Stock Vendido</th>
-              <th className="table-header-cell">Costo neto</th>
-              <th className="table-header-cell">PVP</th>
-              <th className="table-header-cell">Markup</th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('sku_prv')}
+              >
+                SKU prov. {getSortIndicator('sku_prv')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('name')}
+              >
+                Nombre {getSortIndicator('name')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('stk_con')}
+              >
+                Stock Compartido {getSortIndicator('stk_con')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('dep')}
+              >
+                Depósito {getSortIndicator('dep')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('pdt_rec')}
+              >
+                Pte. recibir {getSortIndicator('pdt_rec')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('stk_con_ven')}
+              >
+                Stock Vendido {getSortIndicator('stk_con_ven')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('cos_net')}
+              >
+                Costo neto {getSortIndicator('cos_net')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('pre_net')}
+              >
+                PVP {getSortIndicator('pre_net')}
+              </th>
+              <th 
+                className="table-header-cell sortable"
+                onClick={() => handleSort('mar')}
+              >
+                Markup {getSortIndicator('mar')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -599,7 +631,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                     <td className="table-cell table-cell-name">
                       {article.name}
                     </td>
-                    <td className={`table-cell ${stockStatus.className}`}>
+                    <td className="table-cell">
                       {formatNumber(article.stk_con)}
                     </td>
                     <td className="table-cell">
@@ -654,7 +686,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                   </div>
                   <div className="article-card-title">
                     <span>{article.name}</span>
-                    <span className={stockStatus.badgeClass}>{stockStatus.text}</span>
                   </div>
                 </div>
                 
@@ -669,7 +700,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                   </div>
                   <div className="article-card-detail">
                     <span className="article-card-label">Stock Compartido</span>
-                    <span className={`article-card-value ${stockStatus.className}`}>
+                    <span className="article-card-value">
                       {formatNumber(article.stk_con)}
                     </span>
                   </div>
@@ -779,7 +810,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Stock Compartido:</span>
-                  <span className={`detail-value ${getStockStatus(selectedArticle.stk_con).className}`}>
+                  <span className="detail-value">
                     {formatNumber(selectedArticle.stk_con)}
                   </span>
                 </div>
