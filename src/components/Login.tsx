@@ -446,7 +446,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
 
       const response = await fetch(
-        'https://corralon.sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/INI_URS_VRF_3P_DAT?api_key=f3MM4FeX',
+        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/INI_URS_VRF_3P_DAT?api_key=f3MM4FeX',
         {
           method: 'POST',
           headers: {

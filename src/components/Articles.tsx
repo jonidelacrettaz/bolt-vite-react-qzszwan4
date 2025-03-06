@@ -77,7 +77,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       setConnectionError(null);
       
       const response = await fetch(
-        'https://corralon.sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?api_key=f3MM4FeX',
+        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?api_key=f3MM4FeX',
         {
           method: 'POST',
           headers: {
