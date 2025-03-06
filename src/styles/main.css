@@ -4,8 +4,8 @@
 
 /* Base styles */
 :root {
-  --color-primary: #495055; /* Dark gray/charcoal: C 10 M 0 Y 0 K 82, R 73 G 80 B 85 */
-  --color-secondary: #EF5526; /* Orange: C 0 M 80 Y 100 K 0, R 239 G 85 B 38 */
+  --color-primary: #495055;
+  --color-secondary: #EF5526;
   --color-white: #ffffff;
   --color-gray-50: #f9fafb;
   --color-gray-100: #f3f4f6;
@@ -55,6 +55,9 @@ body {
   background-color: var(--color-primary);
   color: var(--color-white);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 .header-container {
@@ -85,11 +88,11 @@ body {
   border-radius: 0.25rem;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .header-button:hover {
-  background-color: #d64a20; /* Darker shade of secondary color */
+  background-color: #d64a20;
 }
 
 .menu-button {
@@ -98,7 +101,7 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .menu-button:hover {
@@ -235,7 +238,7 @@ body {
 
 .sidebar-nav {
   padding: 1rem;
-  width: 16rem; /* Fixed width to prevent content from showing when collapsed */
+  width: 16rem;
 }
 
 .sidebar-nav-list {
@@ -256,7 +259,7 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
   color: var(--color-primary);
   display: flex;
   flex-direction: column;
@@ -313,11 +316,11 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border: none;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .sidebar-toggle:hover {
-  background-color: #d64a20; /* Darker shade of secondary color */
+  background-color: #d64a20;
 }
 
 /* Coming soon page */
@@ -434,11 +437,11 @@ body {
   color: var(--color-white);
   background-color: var(--color-secondary);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .form-button:hover {
-  background-color: #d64a20; /* Darker shade of secondary color */
+  background-color: #d64a20;
 }
 
 .form-button:disabled {
@@ -461,6 +464,8 @@ body {
   border-radius: 0.25rem;
   color: var(--color-yellow-500);
   text-align: center;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 /* CAPTCHA styles */
@@ -511,7 +516,7 @@ body {
 .captcha-image {
   position: relative;
   width: 100%;
-  padding-bottom: 100%; /* 1:1 aspect ratio */
+  padding-bottom: 100%;
 }
 
 .captcha-image img {
@@ -550,7 +555,7 @@ body {
   font-size: 0.75rem;
   color: var(--color-gray-700);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .captcha-refresh-button:hover:not(:disabled) {
@@ -565,7 +570,7 @@ body {
   font-size: 0.75rem;
   color: var(--color-white);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .captcha-verify-button:hover:not(:disabled) {
@@ -614,12 +619,15 @@ body {
   font-size: 0.875rem;
   color: var(--color-primary);
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  justify-content: center;
 }
 
 .refresh-button:hover:not(:disabled) {
   background-color: var(--color-gray-100);
   color: var(--color-secondary);
+  border-color: var(--color-secondary);
 }
 
 .refresh-button:disabled {
@@ -666,6 +674,9 @@ body {
   background-color: var(--color-gray-50);
   border-radius: 0.5rem;
   border: 1px solid var(--color-gray-200);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .search-container {
@@ -689,6 +700,8 @@ body {
   border-radius: 0.25rem;
   font-size: 0.875rem;
   color: var(--color-primary);
+  background-color: var(--color-white);
+  transition: all 0.2s ease;
 }
 
 .search-input:focus {
@@ -708,11 +721,15 @@ body {
   font-size: 0.875rem;
   color: var(--color-primary);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  justify-content: center;
 }
 
 .filter-button:hover {
   background-color: var(--color-gray-100);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
 }
 
 .filters-panel {
@@ -724,12 +741,14 @@ body {
   background-color: var(--color-gray-50);
   border-radius: 0.5rem;
   border: 1px solid var(--color-gray-200);
+  width: 100%;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
   min-width: 200px;
+  flex: 1;
 }
 
 .filter-label {
@@ -740,12 +759,14 @@ body {
 }
 
 .filter-select {
-  padding: 0.375rem 0.75rem;
+  padding: 0.5rem;
   border: 1px solid var(--color-gray-300);
   border-radius: 0.25rem;
   font-size: 0.875rem;
   color: var(--color-primary);
   background-color: var(--color-white);
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .filter-select:focus {
@@ -754,10 +775,18 @@ body {
   box-shadow: 0 0 0 1px var(--color-secondary);
 }
 
+.filter-select:hover {
+  border-color: var(--color-secondary);
+}
+
 .results-info {
   margin-bottom: 1rem;
   font-size: 0.875rem;
   color: var(--color-gray-600);
+  padding: 0.5rem;
+  background-color: var(--color-gray-50);
+  border-radius: 0.25rem;
+  text-align: center;
 }
 
 /* Articles table */
@@ -773,6 +802,10 @@ body {
 .articles-header {
   padding: 1.25rem 1rem;
   border-bottom: 1px solid var(--color-gray-200);
+  position: sticky;
+  top: 0;
+  background-color: var(--color-white);
+  z-index: 20;
 }
 
 .articles-title {
@@ -789,18 +822,28 @@ body {
 
 .table-container {
   overflow-x: auto;
+  max-height: calc(100vh - 200px);
+  position: relative;
 }
 
 .articles-table {
   min-width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background-color: var(--color-gray-50);
 }
 
 .table-header-cell {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-gray-50);
+  z-index: 10;
   padding: 0.75rem 1.5rem;
   text-align: left;
   font-size: 0.75rem;
@@ -808,12 +851,12 @@ body {
   color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .table-header-cell.sortable {
   cursor: pointer;
   user-select: none;
-  position: relative;
 }
 
 .table-header-cell.sortable:hover {
@@ -835,17 +878,12 @@ body {
   color: var(--color-gray-500);
 }
 
-.table-cell-id {
-  font-weight: 500;
-  color: var(--color-primary);
-}
-
 .table-cell-name {
   color: var(--color-primary);
 }
 
 .table-cell.out-of-stock {
-  color: var(--color-red-500);
+  color: var(--color-red- 500);
   background-color: var(--color-red-100);
   font-weight: 500;
 }
@@ -920,12 +958,13 @@ body {
   justify-content: center;
   cursor: pointer;
   color: var(--color-primary);
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .view-more-images:hover {
   background-color: var(--color-white);
   color: var(--color-secondary);
+  border-color: var(--color-secondary);
 }
 
 .no-image {
@@ -1013,7 +1052,7 @@ body {
   justify-content: center;
   padding: 0.25rem;
   border-radius: 0.25rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .modal-close:hover {
@@ -1074,12 +1113,13 @@ body {
   justify-content: center;
   cursor: pointer;
   color: var(--color-primary);
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .nav-button:hover:not(:disabled) {
   background-color: var(--color-gray-100);
   color: var(--color-secondary);
+  border-color: var(--color-secondary);
 }
 
 .nav-button:disabled {
@@ -1373,7 +1413,6 @@ body {
     justify-content: flex-end;
   }
   
-  /* Fix for view more images button in mobile card view */
   .article-card-actions .view-more-images {
     position: static;
     width: auto;
@@ -1389,7 +1428,6 @@ body {
 
 /* Hide less important columns on small screens */
 @media (max-width: 640px) {
-  /* Keep only the most important columns on mobile */
   .table-header-cell:nth-child(5),
   .table-header-cell:nth-child(6),
   .table-header-cell:nth-child(7),
@@ -1401,7 +1439,6 @@ body {
     display: none;
   }
   
-  /* Always show image, SKU, stock and name */
   .table-header-cell:nth-child(1),
   .table-header-cell:nth-child(2),
   .table-header-cell:nth-child(3),

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, WifiOff, CheckCircle } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (data: { proveedor: number; nombre: string }) => void;
@@ -369,6 +368,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  
   const { 
     blocked, 
     countdown, 
@@ -385,6 +387,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   }, [attempts]);
 
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const handleCaptchaVerify = (success: boolean) => {
     setCaptchaVerified(success);
   };
@@ -392,18 +407,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if rate limited
-    if (blocked) {
-      setError(`Demasiados intentos fallidos. Por favor, espere ${countdown} segundos antes de intentar nuevamente.`);
+    if (isOffline) {
+      setError('No hay conexión a internet. Por favor, verifique su conexión.');
       return;
     }
-    
-    // If we're showing CAPTCHA and it's not verified, show error
-    if (showCaptcha && !captchaVerified) {
-      setError('Por favor, complete la verificación de seguridad.');
-      return;
-    }
-    
+
     // Basic validation
     if (!email || !password) {
       setError('Por favor, ingrese su correo electrónico y contraseña.');
@@ -417,19 +425,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
     
-    // Record this attempt, if it returns false we're now blocked
-    if (!recordAttempt()) {
+    // If we're showing CAPTCHA and it's not verified, show error
+    if (showCaptcha && !captchaVerified) {
+      setError('Por favor, complete la verificación de seguridad.');
+      return;
+    }
+    
+    // Check if rate limited
+    if (blocked) {
       setError(`Demasiados intentos fallidos. Por favor, espere ${countdown} segundos antes de intentar nuevamente.`);
       return;
     }
     
-    // Show CAPTCHA for next attempt
-    setShowCaptcha(true);
-    
     setLoading(true);
     setError('');
+    setConnectionError(null);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+
       const response = await fetch(
         'https://www.sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/INI_URS_VRF_3P_DAT?api_key=f3MM4FeX',
         {
@@ -438,51 +453,60 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email, password }),
+          signal: controller.signal
         }
       );
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Error del servidor: ${response.status}`);
       }
 
       const data = await response.json();
       
-      // Check if the response contains an error message
       if (data.error) {
         throw new Error(data.error);
       }
       
-      // Check if the response has the expected data structure
       if (!data.proveedor || !data.nombre) {
         throw new Error('Respuesta del servidor inválida');
       }
 
-      // Reset attempts on successful login
       resetAttempts();
       onLogin(data);
     } catch (err) {
-      let errorMessage = 'Error al iniciar sesión. Por favor, intente nuevamente más tarde.';
+      const error = err as Error;
+      let errorMessage = 'Error al iniciar sesión.';
       
-      if (err instanceof Error) {
-        // Log the actual error for debugging but show a user-friendly message
-        console.error('Login error:', {
-          message: err.message,
-          name: err.name,
-          stack: err.stack
-        });
-        
-        if (err.message.includes('fetch') || err.message.includes('HTTP error')) {
-          errorMessage = 'Error de conexión. Por favor, verifique su conexión a internet e intente nuevamente.';
-        } else if (err.message === 'Respuesta del servidor inválida') {
-          errorMessage = 'Error en la respuesta del servidor. Por favor, intente nuevamente más tarde.';
-        } else {
-          errorMessage = 'Credenciales incorrectas. Por favor, verifique su correo electrónico y contraseña.';
-        }
+      if (error.name === 'AbortError') {
+        errorMessage = 'La conexión tardó demasiado tiempo. Por favor, intente nuevamente.';
+        setConnectionError('timeout');
+      } else if (error.message.includes('fetch') || !navigator.onLine) {
+        errorMessage = 'No se pudo conectar con el servidor. Verifique su conexión.';
+        setConnectionError('network');
+      } else if (error.message.includes('servidor')) {
+        errorMessage = `Error del servidor. Por favor, intente más tarde.`;
+        setConnectionError('server');
+      } else if (error.message === 'Respuesta del servidor inválida') {
+        errorMessage = 'Error en la respuesta del servidor. Por favor, intente más tarde.';
+        setConnectionError('invalid');
+      } else {
+        errorMessage = 'Credenciales incorrectas. Por favor, verifique su correo electrónico y contraseña.';
       }
       
       setError(errorMessage);
-      // Reset CAPTCHA verification on error
       setCaptchaVerified(false);
+      
+      if (connectionError) {
+        // Si es un error de conexión, no contar como intento fallido
+        return;
+      }
+      
+      // Record this attempt, if it returns false we're now blocked
+      if (!recordAttempt()) {
+        setError(`Demasiados intentos fallidos. Por favor, espere ${countdown} segundos antes de intentar nuevamente.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -508,18 +532,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
         
         {error && (
-          <div className="login-error">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="login-error-text">{error}</p>
-              </div>
+          <div className={`login-error ${connectionError ? 'connection-error' : ''}`}>
+            <div className="flex items-center">
+              {connectionError ? (
+                <WifiOff size={16} className="mr-2" />
+              ) : (
+                <AlertCircle size={16} className="mr-2" />
+              )}
+              <p className="login-error-text">{error}</p>
             </div>
           </div>
         )}
         
         {blocked ? (
           <div className="blocked-message">
-            <p className="text-center text-center text-gray-700 my-4">
+            <p className="text-center text-gray-700 my-4">
               Demasiados intentos fallidos. Por favor, espere <span className="font-bold">{countdown}</span> segundos antes de intentar nuevamente.
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
@@ -532,7 +559,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         ) : (
           <form className="login-form" onSubmit={handleSubmit}>
             {attempts > 0 && (
-              <div className="attempts-warning text-sm text-gray-600 mb-4">
+              <div className="attempts-warning">
                 Intentos: {attempts}/{maxAttempts}
               </div>
             )}

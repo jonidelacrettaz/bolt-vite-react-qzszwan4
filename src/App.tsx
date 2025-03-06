@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, LogOut, ChevronLeft, ChevronRight, AlertCircle, X } from 'lucide-react';
+import { Menu, LogOut, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import Login from './components/Login';
 import Articles from './components/Articles';
 
@@ -76,7 +76,7 @@ function App() {
             <aside className={`sidebar ${!sidebarVisible ? 'sidebar-hidden' : ''} ${menuOpen ? 'mobile-sidebar-visible' : ''}`}>
               <div className="mobile-sidebar-header md:hidden">
                 <button onClick={toggleMenu} className="mobile-close-button">
-                  <X size={24} />
+                  <Menu size={24} />
                 </button>
                 <span className="mobile-user-name">{providerData?.nombre}</span>
               </div>
@@ -91,22 +91,6 @@ function App() {
                       className={`sidebar-nav-button ${activeTab === 'articles' ? 'active' : ''}`}
                     >
                       Artículos
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => {
-                        setActiveTab('invoices');
-                        setMenuOpen(false);
-                      }}
-                      className={`sidebar-nav-button ${activeTab === 'invoices' ? 'active' : ''}`}
-                      disabled
-                    >
-                      Facturas
-                      <span className="coming-soon-badge">
-                        <AlertCircle size={14} />
-                        Próximamente
-                      </span>
                     </button>
                   </li>
                   <li>
@@ -133,12 +117,6 @@ function App() {
             <main className="main-content">
               {activeTab === 'articles' && providerData && (
                 <Articles providerId={providerData.proveedor} />
-              )}
-              {activeTab === 'invoices' && (
-                <div className="coming-soon-container">
-                  <h2 className="coming-soon-title">Facturas</h2>
-                  <p className="coming-soon-text">Esta funcionalidad estará disponible próximamente.</p>
-                </div>
               )}
               {activeTab === 'sales' && (
                 <div className="coming-soon-container">

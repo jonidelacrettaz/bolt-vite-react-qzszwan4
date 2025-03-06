@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Filter, Image as ImageIcon, Eye, RefreshCw, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Search, Filter, Image as ImageIcon, Eye, RefreshCw, X, ChevronLeft, ChevronRight, WifiOff, AlertCircle, Clock, ServerCrash } from 'lucide-react';
 
 interface Article {
   id: number;
@@ -44,11 +44,37 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 3000; // 3 segundos
 
-  const fetchArticles = async () => {
+  // Monitor de estado de conexión
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const fetchArticles = useCallback(async (retry = false) => {
+    if (isOffline) {
+      setError('No hay conexión a internet. Por favor, verifique su conexión.');
+      setConnectionError('offline');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
+      setConnectionError(null);
       
       const response = await fetch(
         'https://www.sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?api_key=f3MM4FeX',
@@ -58,20 +84,21 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ proveedor: providerId }),
+          signal: AbortSignal.timeout(10000), // Timeout de 10 segundos
         }
       );
 
       if (!response.ok) {
-        throw new Error('Error al obtener los artículos');
+        throw new Error(`Error del servidor: ${response.status}`);
       }
 
       const data: ArticlesResponse = await response.json();
       
-      console.log('API Response:', data);
-      console.log('Total articles from API:', data.art_prv_web_dis.length);
+      if (!data || !Array.isArray(data.art_prv_web_dis)) {
+        throw new Error('Formato de respuesta inválido');
+      }
       
       const seenIds = new Set<number>();
-      
       const uniqueArticles = data.art_prv_web_dis.filter(article => {
         if (!seenIds.has(article.id)) {
           seenIds.add(article.id);
@@ -80,71 +107,108 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
         return false;
       });
       
-      console.log('Unique articles after filtering:', uniqueArticles.length);
-      console.log('Unique IDs:', Array.from(seenIds));
-      
       setArticles(uniqueArticles);
       setFilteredArticles(uniqueArticles);
+      setRetryCount(0); // Resetear contador de reintentos
     } catch (err) {
-      setError('Error al cargar los artículos. Por favor, intente nuevamente.');
-      console.error('Articles fetch error:', err);
+      const error = err as Error;
+      let errorMessage = 'Error al cargar los artículos.';
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'La conexión tardó demasiado tiempo. Por favor, intente nuevamente.';
+        setConnectionError('timeout');
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'No se pudo conectar con el servidor. Verifique su conexión.';
+        setConnectionError('network');
+      } else if (error.message.includes('servidor')) {
+        errorMessage = `Error del servidor. ${error.message}`;
+        setConnectionError('server');
+      } else {
+        errorMessage = 'Error inesperado. Por favor, intente nuevamente.';
+        setConnectionError('unknown');
+      }
+
+      setError(errorMessage);
+      console.error('Error al cargar artículos:', error);
+
+      // Lógica de reintento automático
+      if (retry && retryCount < MAX_RETRIES) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          fetchArticles(true);
+        }, RETRY_DELAY);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [providerId, retryCount, isOffline]);
 
   useEffect(() => {
-    fetchArticles();
-  }, [providerId]);
+    fetchArticles(true); // Habilitar reintentos automáticos en la carga inicial
+  }, [fetchArticles]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchArticles();
+    fetchArticles(false); // Sin reintentos autom áticos en refresh manual
   };
 
-  useEffect(() => {
-    let result = [...articles];
+  // Componente de estado de error de conexión
+  const ConnectionErrorState = () => {
+    if (!connectionError) return null;
 
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      result = result.filter(
-        article =>
-          article.name.toLowerCase().includes(searchLower) ||
-          article.id.toString().includes(searchLower) ||
-          article.sku_prv.toLowerCase().includes(searchLower) ||
-          article.ref.toLowerCase().includes(searchLower)
-      );
+    let icon = <AlertCircle size={48} />;
+    let title = 'Error de conexión';
+    let message = 'Ha ocurrido un error inesperado.';
+    let action = 'Intentar nuevamente';
+
+    switch (connectionError) {
+      case 'offline':
+        icon = <WifiOff size={48} />;
+        title = 'Sin conexión';
+        message = 'No hay conexión a internet. Por favor, verifique su conexión y vuelva a intentar.';
+        action = 'Verificar conexión';
+        break;
+      case 'timeout':
+        icon = <Clock size={48} />;
+        title = 'Tiempo de espera agotado';
+        message = 'La conexión con el servidor está tardando demasiado. Por favor, intente nuevamente.';
+        break;
+      case 'network':
+        icon = <WifiOff size={48} />;
+        title = 'Error de red';
+        message = 'No se pudo establecer conexión con el servidor. Verifique su conexión a internet.';
+        break;
+      case 'server':
+        icon = <ServerCrash size={48} />;
+        title = 'Error del servidor';
+        message = 'El servidor no está respondiendo correctamente. Por favor, intente más tarde.';
+        break;
     }
 
-    if (stockFilter !== 'all') {
-      if (stockFilter === 'inStock') {
-        result = result.filter(article => article.stk_con > 0);
-      } else if (stockFilter === 'outOfStock') {
-        result = result.filter(article => article.stk_con === 0);
-      } else if (stockFilter === 'lowStock') {
-        result = result.filter(article => article.stk_con > 0 && article.stk_con < 5);
-      } else if (stockFilter === 'highStock') {
-        result = result.filter(article => article.stk_con >= 5);
-      }
-    }
-
-    result.sort((a, b) => {
-      let comparison = 0;
-      
-      if (sortBy === 'name') {
-        comparison = a.name.localeCompare(b.name);
-      } else if (sortBy === 'stock') {
-        comparison = a.stk_con - b.stk_con;
-      } else if (sortBy === 'price') {
-        comparison = a.pre_net - b.pre_net;
-      }
-      
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    setFilteredArticles(result);
-  }, [articles, searchTerm, stockFilter, sortBy, sortOrder]);
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-secondary mb-4">
+          {icon}
+        </div>
+        <h3 className="text-xl font-semibold mb-2">{title}</h3>
+        <p className="text-gray-600 mb-4">{message}</p>
+        {retryCount > 0 && retryCount < MAX_RETRIES && (
+          <p className="text-sm text-gray-500 mb-4">
+            Reintento {retryCount} de {MAX_RETRIES}...
+          </p>
+        )}
+        <button
+          onClick={() => fetchArticles(true)}
+          className="bg-secondary text-white px-4 py-2 rounded-md hover:bg-secondary-dark transition-colors"
+          disabled={loading || refreshing}
+        >
+          <RefreshCw size={16} className={`inline mr-2 ${loading || refreshing ? 'animate-spin' : ''}`} />
+          {action}
+        </button>
+      </div>
+    );
+  };
 
   const getPosition1ImageUrl = (fotUrl?: string): string | null => {
     if (!fotUrl) return null;
@@ -300,6 +364,49 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     );
   };
 
+  useEffect(() => {
+    let result = [...articles];
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(
+        article =>
+          article.name.toLowerCase().includes(searchLower) ||
+          article.id.toString().includes(searchLower) ||
+          article.sku_prv.toLowerCase().includes(searchLower) ||
+          article.ref.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (stockFilter !== 'all') {
+      if (stockFilter === 'inStock') {
+        result = result.filter(article => article.stk_con > 0);
+      } else if (stockFilter === 'outOfStock') {
+        result = result.filter(article => article.stk_con === 0);
+      } else if (stockFilter === 'lowStock') {
+        result = result.filter(article => article.stk_con > 0 && article.stk_con < 5);
+      } else if (stockFilter === 'highStock') {
+        result = result.filter(article => article.stk_con >= 5);
+      }
+    }
+
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortBy === 'stock') {
+        comparison = a.stk_con - b.stk_con;
+      } else if (sortBy === 'price') {
+        comparison = a.pre_net - b.pre_net;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    setFilteredArticles(result);
+  }, [articles, searchTerm, stockFilter, sortBy, sortOrder]);
+
   if (loading && !refreshing) {
     return (
       <div className="loading-spinner">
@@ -308,14 +415,20 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
     );
   }
 
-  if (error && !refreshing) {
+  if (connectionError) {
     return (
-      <div className="error-message">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="error-text">{error}</p>
+      <div className="articles-container">
+        <div className="articles-header">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="articles-title">Artículos</h3>
+              <p className="articles-subtitle">
+                Listado de artículos disponibles
+              </p>
+            </div>
           </div>
         </div>
+        <ConnectionErrorState />
       </div>
     );
   }
