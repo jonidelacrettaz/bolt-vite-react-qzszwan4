@@ -1,6 +1,184 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Search, Filter, Image as ImageIcon, Eye, RefreshCw, X, ChevronLeft, ChevronRight, WifiOff, AlertCircle, Clock, ServerCrash } from 'lucide-react';
 
+// Lazy loading hook for images
+const useIntersectionObserver = (options = {}) => {
+  const [ref, setRef] = useState<HTMLElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!ref) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1, ...options });
+
+    observer.observe(ref);
+
+    return () => observer.disconnect();
+  }, [ref, options]);
+
+  return [setRef, isVisible] as const;
+};
+
+// Memoized ProductImage component
+const ProductImage = React.memo(({ imageUrl, articleName }: { imageUrl: string, articleName: string }) => {
+  const [imageRef, isVisible] = useIntersectionObserver();
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isVisible || !imageUrl || hasError || isLoaded) return;
+
+    setIsLoading(true);
+    const img = new Image();
+    
+    img.onload = () => {
+      setIsLoaded(true);
+      setIsLoading(false);
+    };
+    
+    img.onerror = () => {
+      setHasError(true);
+      setIsLoading(false);
+    };
+    
+    img.src = imageUrl;
+  }, [isVisible, imageUrl, hasError, isLoaded]);
+
+  if (hasError) {
+    return (
+      <div className="no-image" ref={imageRef}>
+        <ImageIcon size={24} />
+      </div>
+    );
+  }
+
+  if (!isVisible || isLoading) {
+    return (
+      <div className="image-loading" ref={imageRef}>
+        <div className="image-spinner"></div>
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={imageUrl}
+      alt={articleName}
+      className="product-image"
+      style={{ opacity: isLoaded ? 1 : 0 }}
+      onLoad={() => setIsLoaded(true)}
+    />
+  );
+});
+
+// Memoized ArticleRow component
+const ArticleRow = React.memo(({ 
+  article, 
+  onImageClick 
+}: { 
+  article: Article; 
+  onImageClick: (article: Article) => void;
+}) => {
+  const imageUrl = getPosition1ImageUrl(article.fot_url);
+  const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
+  const pvp = article.pre_net * 1.21;
+
+  return (
+    <tr className="table-row">
+      <td className="table-cell table-cell-image">
+        <div className="image-container">
+          {imageUrl ? (
+            <>
+              <ProductImage imageUrl={imageUrl} articleName={article.name} />
+              {hasMultipleImages && (
+                <button 
+                  className="view-more-images" 
+                  onClick={() => onImageClick(article)}
+                  title="Ver más imágenes"
+                >
+                  <Eye size={16} />
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="no-image">
+              <ImageIcon size={24} />
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="table-cell">{article.ref}</td>
+      <td className="table-cell">{article.sku_prv}</td>
+      <td className="table-cell table-cell-name">{article.name}</td>
+      <td className="table-cell">{formatNumber(article.stk_con)}</td>
+      <td className="table-cell">{formatNumber(article.dep)}</td>
+      <td className="table-cell">{formatNumber(article.pdt_rec)}</td>
+      <td className="table-cell">{formatNumber(article.stk_con_ven)}</td>
+      <td className="table-cell">{formatCurrency(article.cos_net)}</td>
+      <td className="table-cell">{formatCurrency(pvp)}</td>
+      <td className="table-cell">{formatPercentage(article.mar)}</td>
+    </tr>
+  );
+});
+
+// Helper functions moved outside component
+const getPosition1ImageUrl = (fotUrl?: string): string | null => {
+  if (!fotUrl) return null;
+  
+  const urls = fotUrl.split(',');
+  const position1Image = urls.find(url => url.includes('_1_'));
+  
+  if (position1Image) {
+    return position1Image.trim();
+  } else if (urls.length > 0) {
+    return urls[0].trim();
+  }
+  
+  return null;
+};
+
+const getAllImageUrls = (fotUrl?: string): string[] => {
+  if (!fotUrl) return [];
+  
+  return fotUrl.split(',')
+    .map(url => url.trim())
+    .filter(url => url.length > 0);
+};
+
+const formatNumber = (num: number) => {
+  return new Intl.NumberFormat('es-AR').format(num);
+};
+
+const formatCurrency = (num: number) => {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 2,
+  }).format(num);
+};
+
+const formatPercentage = (num: number) => {
+  return `${num.toFixed(2)}%`;
+};
+
+const getStockStatus = (stock: number) => {
+  if (stock === 0) {
+    return { text: 'Sin stock' };
+  } else if (stock < 5) {
+    return { text: 'Stock bajo' };
+  } else {
+    return { text: 'En stock' };
+  }
+};
+
+import { Search, Filter, Image as ImageIcon, Eye, RefreshCw, X, ChevronLeft, ChevronRight, WifiOff, AlertCircle, Clock, ServerCrash } from 'lucide-react';
+
 interface Article {
   id: number;
   name: string;
@@ -56,9 +234,10 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [sortColumn, setSortColumn] = useState<keyof Article>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [articlesCache, setArticlesCache] = useState<Record<number, Article[]>>({});
+  const [providersCache, setProvidersCache] = useState<Provider[]>([]);
+  const [providersLoaded, setProvidersLoaded] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [validImageCache, setValidImageCache] = useState<Record<string, boolean>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -67,10 +246,10 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 3000;
-  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
 
-  const fetchProviders = async () => {
-    if (!isAdmin || isOffline) return;
+  // Async provider loading
+  const fetchProviders = useCallback(async () => {
+    if (!isAdmin || isOffline || providersLoaded) return;
 
     try {
       setLoadingProviders(true);
@@ -93,7 +272,9 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       const data: ProvidersResponse = await response.json();
       
       if (data && Array.isArray(data.ent_m)) {
+        setProvidersCache(data.ent_m);
         setProviders(data.ent_m);
+        setProvidersLoaded(true);
       }
     } catch (err) {
       console.error('Error al cargar proveedores:', err);
@@ -101,7 +282,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     } finally {
       setLoadingProviders(false);
     }
-  };
+  }, [isAdmin, isOffline, providersLoaded]);
 
   const fetchArticles = async (retry = false) => {
     // Check if we have cached articles for this provider
@@ -198,6 +379,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     }
   };
 
+  // Load providers asynchronously after component mounts
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -212,10 +394,15 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchProviders();
+    if (isAdmin && !providersLoaded) {
+      // Load providers in background after a small delay
+      const timer = setTimeout(() => {
+        fetchProviders();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isAdmin]);
+  }, [isAdmin, providersLoaded, fetchProviders]);
   useEffect(() => {
     fetchArticles(false);
   }, [currentProviderId]);
@@ -232,7 +419,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     }
   }, [providerFilter, isAdmin, providerId]);
   const getProviderName = (providerId: number): string => {
-    const provider = providers.find(p => p.id === providerId);
+    const provider = providersCache.find(p => p.id === providerId);
     return provider ? provider.name : `Proveedor ${providerId}`;
   };
   const handleRefresh = () => {
@@ -302,70 +489,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     );
   };
 
-  const getPosition1ImageUrl = (fotUrl?: string): string | null => {
-    if (!fotUrl) return null;
-    
-    const urls = fotUrl.split(',');
-    
-    const position1Image = urls.find(url => url.includes('_1_'));
-    
-    if (position1Image) {
-      return position1Image.trim();
-    } else if (urls.length > 0) {
-      return urls[0].trim();
-    }
-    
-    return null;
-  };
-
-  const getAllImageUrls = (fotUrl?: string): string[] => {
-    if (!fotUrl) return [];
-    
-    return fotUrl.split(',')
-      .map(url => url.trim())
-      .filter(url => url.length > 0);
-  };
-
-  const checkImageValidity = (imageUrl: string, callback: (isValid: boolean) => void) => {
-    // Check if we already have the result cached
-    if (validImageCache[imageUrl] !== undefined) {
-      callback(validImageCache[imageUrl]);
-      return;
-    }
-
-    // Set loading state
-    setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'loading' }));
-
-    const img = new Image();
-    img.onload = () => {
-      setValidImageCache(prev => ({ ...prev, [imageUrl]: true }));
-      setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'loaded' }));
-      callback(true);
-    };
-    img.onerror = () => {
-      setValidImageCache(prev => ({ ...prev, [imageUrl]: false }));
-      setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'error' }));
-      callback(false);
-    };
-    img.src = imageUrl;
-  };
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('es-AR').format(num);
-  };
-
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(num);
-  };
-
-  const formatPercentage = (num: number) => {
-    return `${num.toFixed(2)}%`;
-  };
-
   const handleSort = (column: keyof Article) => {
     if (sortColumn === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -404,70 +527,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     if (currentImageIndex > 0) {
       setCurrentImageIndex(currentImageIndex - 1);
     }
-  };
-
-  const getStockStatus = (stock: number) => {
-    if (stock === 0) {
-      return { text: 'Sin stock' };
-    } else if (stock < 5) {
-      return { text: 'Stock bajo' };
-    } else {
-      return { text: 'En stock' };
-    }
-  };
-
-  const ProductImage = ({ imageUrl, articleName }: { imageUrl: string, articleName: string }) => {
-    const [isValid, setIsValid] = useState<boolean | null>(
-      validImageCache[imageUrl] !== undefined ? validImageCache[imageUrl] : null
-    );
-    const [isLoading, setIsLoading] = useState(true);
-    
-    useEffect(() => {
-      if (imageUrl) {
-        // If already cached, use cached result immediately
-        if (validImageCache[imageUrl] !== undefined) {
-          setIsValid(validImageCache[imageUrl]);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Otherwise, load asynchronously
-        setIsLoading(true);
-        checkImageValidity(imageUrl, (valid) => {
-          setIsValid(valid);
-          setIsLoading(false);
-        });
-      }
-    }, [imageUrl]);
-    
-    if (isLoading || isValid === null) {
-      return (
-        <div className="image-loading">
-          <div className="image-spinner"></div>
-        </div>
-      );
-    }
-    
-    if (!isValid) {
-      return (
-        <div className="no-image">
-          <ImageIcon size={24} />
-        </div>
-      );
-    }
-    
-    return (
-      <img 
-        src={imageUrl}
-        alt={articleName}
-        className="product-image"
-        loading="lazy"
-        onLoad={() => {
-          setValidImageCache(prev => ({ ...prev, [imageUrl]: true }));
-          setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'loaded' }));
-        }}
-      />
-    );
   };
 
   useEffect(() => {
@@ -736,71 +795,15 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                 <td colSpan={11} className="table-cell text-center">
                   No hay artículos que coincidan con los criterios de búsqueda
                 </td>
-              </tr>
-            ) : (
-              filteredArticles.map((article) => {
-                const imageUrl = getPosition1ImageUrl(article.fot_url);
-                const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
-                const stockStatus = getStockStatus(article.stk_con);
-                const pvp = article.pre_net * 1.21;
-                
-                return (
-                  <tr key={article.id} className="table-row">
-                    <td className="table-cell table-cell-image">
-                      <div className="image-container">
-                        {imageUrl ? (
-                          <>
-                            <ProductImage imageUrl={imageUrl} articleName={article.name} />
-                            {hasMultipleImages && (
-                              <button 
-                                className="view-more-images" 
-                                onClick={() => openImageModal(article)}
-                                title="Ver más imágenes"
-                              >
-                                <Eye size={16} />
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <div className="no-image">
-                            <ImageIcon size={24} />
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="table-cell">
-                      {article.ref}
-                    </td>
-                    <td className="table-cell">
-                      {article.sku_prv}
-                    </td>
-                    <td className="table-cell table-cell-name">
-                      {article.name}
-                    </td>
-                    <td className="table-cell">
-                      {formatNumber(article.stk_con)}
-                    </td>
-                    <td className="table-cell">
-                      {formatNumber(article.dep)}
-                    </td>
-                    <td className="table-cell">
-                      {formatNumber(article.pdt_rec)}
-                    </td>
-                    <td className="table-cell">
-                      {formatNumber(article.stk_con_ven)}
-                    </td>
-                    <td className="table-cell">
-                      {formatCurrency(article.cos_net)}
-                    </td>
-                    <td className="table-cell">
-                      {formatCurrency(pvp)}
-                    </td>
-                    <td className="table-cell">
-                      {formatPercentage(article.mar)}
-                    </td>
-                  </tr>
-                );
-              })
+              filteredArticles.map((article) => (
+                article && article.id ? (
+                  <ArticleRow 
+                    key={article.id} 
+                    article={article} 
+                    onImageClick={openImageModal}
+                  />
+                ) : null
+              ))
             )}
           </tbody>
         </table>
@@ -812,69 +815,15 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
             No hay artículos que coincidan con los criterios de búsqueda
           </div>
         ) : (
-          filteredArticles.map((article) => {
-            const imageUrl = getPosition1ImageUrl(article.fot_url);
-            const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
-            const stockStatus = getStockStatus(article.stk_con);
-            const pvp = article.pre_net * 1.21;
-            
-            return (
-              <div key={article.id} className="article-card">
-                <div className="article-card-header">
-                  <div className="article-card-image">
-                    {imageUrl ? (
-                      <ProductImage imageUrl={imageUrl} articleName={article.name} />
-                    ) : (
-                      <div className="no-image">
-                        <ImageIcon size={24} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="article-card-title">
-                    <span>{article.name}</span>
-                  </div>
-                </div>
-                
-                <div className="article-card-details">
-                  <div className="article-card-detail">
-                    <span className="article-card-label">SKU</span>
-                    <span className="article-card-value">{article.ref}</span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">SKU Prov.</span>
-                    <span className="article-card-value">{article.sku_prv}</span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">Stock Compartido</span>
-                    <span className="article-card-value">
-                      {formatNumber(article.stk_con)}
-                    </span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">Costo Neto</span>
-                    <span className="article-card-value">{formatCurrency(article.cos_net)}</span>
-                  </div>
-                  <div className="article-card-detail">
-                    <span className="article-card-label">PVP</span>
-                    <span className="article-card-value">{formatCurrency(pvp)}</span>
-                  </div>
-                </div>
-                
-                {hasMultipleImages && (
-                  <div className="article-card-actions">
-                    <button 
-                      className="view-more-images" 
-                      onClick={() => openImageModal(article)}
-                      title="Ver más imágenes"
-                    >
-                      <Eye size={16} />
-                      <span>Ver imágenes</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })
+          filteredArticles.map((article) => (
+            article && article.id ? (
+              <MobileArticleCard 
+                key={article.id} 
+                article={article} 
+                onImageClick={openImageModal}
+              />
+            ) : null
+          ))
         )}
       </div>
 
@@ -892,9 +841,11 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                 {imageUrls.length > 0 ? (
                   <>
                     <div className="main-image-container">
-                      <ProductImage 
+                      <img
                         imageUrl={imageUrls[currentImageIndex]} 
-                        articleName={`${selectedArticle.name} - Imagen ${currentImageIndex + 1}`} 
+                        src={imageUrls[currentImageIndex]}
+                        alt={`${selectedArticle.name} - Imagen ${currentImageIndex + 1}`}
+                        className="product-image"
                       />
                     </div>
                     
@@ -928,9 +879,10 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                             className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                             onClick={() => setCurrentImageIndex(index)}
                           >
-                            <ProductImage 
-                              imageUrl={url} 
-                              articleName={`${selectedArticle.name} - Thumbnail ${index + 1}`} 
+                            <img
+                              src={url}
+                              alt={`${selectedArticle.name} - Thumbnail ${index + 1}`}
+                              className="product-image"
                             />
                           </div>
                         ))}
@@ -980,5 +932,75 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     </div>
   );
 };
+
+// Memoized MobileArticleCard component
+const MobileArticleCard = React.memo(({ 
+  article, 
+  onImageClick 
+}: { 
+  article: Article; 
+  onImageClick: (article: Article) => void;
+}) => {
+  const imageUrl = getPosition1ImageUrl(article.fot_url);
+  const hasMultipleImages = article.fot_url && article.fot_url.split(',').length > 1;
+  const pvp = article.pre_net * 1.21;
+  
+  return (
+    <div className="article-card">
+      <div className="article-card-header">
+        <div className="article-card-image">
+          {imageUrl ? (
+            <ProductImage imageUrl={imageUrl} articleName={article.name} />
+          ) : (
+            <div className="no-image">
+              <ImageIcon size={24} />
+            </div>
+          )}
+        </div>
+        <div className="article-card-title">
+          <span>{article.name}</span>
+        </div>
+      </div>
+      
+      <div className="article-card-details">
+        <div className="article-card-detail">
+          <span className="article-card-label">SKU</span>
+          <span className="article-card-value">{article.ref}</span>
+        </div>
+        <div className="article-card-detail">
+          <span className="article-card-label">SKU Prov.</span>
+          <span className="article-card-value">{article.sku_prv}</span>
+        </div>
+        <div className="article-card-detail">
+          <span className="article-card-label">Stock Compartido</span>
+          <span className="article-card-value">
+            {formatNumber(article.stk_con)}
+          </span>
+        </div>
+        <div className="article-card-detail">
+          <span className="article-card-label">Costo Neto</span>
+          <span className="article-card-value">{formatCurrency(article.cos_net)}</span>
+        </div>
+        <div className="article-card-detail">
+          <span className="article-card-label">PVP</span>
+          <span className="article-card-value">{formatCurrency(pvp)}</span>
+        </div>
+      </div>
+      
+      {hasMultipleImages && (
+        <div className="article-card-actions">
+          <button 
+            className="view-more-images" 
+            onClick={() => onImageClick(article)}
+            title="Ver más imágenes"
+          >
+            <Eye size={16} />
+            <span>Ver imágenes</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
 
 export default Articles;

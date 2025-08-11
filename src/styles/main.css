@@ -1075,12 +1075,7 @@ body {
 
 /* Smooth image fade-in */
 .product-image {
-  opacity: 0;
   transition: opacity 0.3s ease-in-out;
-}
-
-.product-image[src] {
-  opacity: 1;
 }
 
 /* Enhanced Image Modal */
