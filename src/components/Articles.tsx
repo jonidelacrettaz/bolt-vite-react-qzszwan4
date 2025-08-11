@@ -69,20 +69,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const RETRY_DELAY = 3000;
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
 
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const fetchProviders = useCallback(async () => {
+  const fetchProviders = async () => {
     if (!isAdmin || isOffline) return;
 
     try {
@@ -114,15 +101,9 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     } finally {
       setLoadingProviders(false);
     }
-  }, [isAdmin, isOffline]);
+  };
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchProviders();
-    }
-  }, [fetchProviders]);
-
-  const fetchArticles = useCallback(async (retry = false) => {
+  const fetchArticles = async (retry = false) => {
     // Check if we have cached articles for this provider
     if (articlesCache[currentProviderId] && !retry) {
       setArticles(articlesCache[currentProviderId]);
@@ -215,11 +196,29 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentProviderId, retryCount, isOffline, articlesCache]);
+  };
 
   useEffect(() => {
-    fetchArticles(true);
-  }, [fetchArticles]);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchProviders();
+    }
+  }, [isAdmin]);
+  useEffect(() => {
+    fetchArticles(false);
+  }, [currentProviderId]);
 
   // Update current provider ID when provider filter changes
   useEffect(() => {
@@ -232,11 +231,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       setCurrentProviderId(providerId);
     }
   }, [providerFilter, isAdmin, providerId]);
-
-  // Load articles when provider changes
-  useEffect(() => {
-    fetchArticles(false);
-  }, [currentProviderId]);
   const getProviderName = (providerId: number): string => {
     const provider = providers.find(p => p.id === providerId);
     return provider ? provider.name : `Proveedor ${providerId}`;
