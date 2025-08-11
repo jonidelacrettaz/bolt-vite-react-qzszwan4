@@ -154,7 +154,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       
       const seenIds = new Set<number>();
       const uniqueArticles = data.art_prv_web_dis.filter(article => {
-        if (!seenIds.has(article.id)) {
+        if (article && article.id && !seenIds.has(article.id)) {
           seenIds.add(article.id);
           return true;
         }
