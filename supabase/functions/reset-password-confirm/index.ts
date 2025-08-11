@@ -84,9 +84,48 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Call Sygemat API to confirm password reset
-    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/RST_PWD_CNF?api_key=f3MM4FeX';
-    console.log('Calling Sygemat API for password reset confirmation');
+    // Validate password complexity
+    const hasUpperCase = /[A-Z]/.test(newPassword);
+    const hasLowerCase = /[a-z]/.test(newPassword);
+    const hasNumbers = /\d/.test(newPassword);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial" 
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    // Basic token validation (you can enhance this with expiration, etc.)
+    if (token.length < 10) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Token inválido" 
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    // Call Sygemat API to update the password
+    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/UPD_PWD_USR?api_key=f3MM4FeX';
+    console.log('Calling Sygemat API to update password');
 
     const response = await fetch(sygemat_api_url, {
       method: 'POST',
@@ -95,9 +134,9 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({ 
         email,
-        token,
-        newPassword
+        password: newPassword
       }),
+      signal: AbortSignal.timeout(15000),
     });
 
     console.log('Sygemat API response status:', response.status);
@@ -105,14 +144,14 @@ Deno.serve(async (req: Request) => {
     if (!response.ok) {
       console.log('Sygemat API error:', response.status);
       
-      if (response.status === 400) {
+      if (response.status === 404) {
         return new Response(
           JSON.stringify({ 
             success: false,
-            error: "Token inválido o expirado" 
+            error: "Usuario no encontrado" 
           }),
           {
-            status: 400,
+            status: 404,
             headers: {
               'Content-Type': 'application/json',
               ...corsHeaders,
@@ -125,14 +164,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const data = await response.json();
-    console.log('Password reset confirmation response:', data);
+    console.log('Password update response:', data);
 
     // Check if the API returned success
     if (data.success === false) {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: data.message || "Error al restablecer la contraseña" 
+          error: data.message || "Error al actualizar la contraseña" 
         }),
         {
           status: 400,
@@ -144,12 +183,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('Password reset successful');
+    console.log('Password updated successfully');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Contraseña restablecida exitosamente' 
+        message: 'Contraseña actualizada exitosamente' 
       }),
       {
         headers: {
@@ -162,10 +201,18 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Password reset confirmation error:', error);
     
+    let errorMessage = 'Error interno del servidor al actualizar la contraseña';
+    
+    if (error.name === 'AbortError') {
+      errorMessage = 'Timeout al conectar con el servidor. Por favor, intente nuevamente.';
+    } else if (error.message.includes('fetch')) {
+      errorMessage = 'Error de conexión. Por favor, verifique su conexión a internet.';
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: 'Error interno del servidor al restablecer la contraseña'
+        error: errorMessage
       }),
       {
         status: 500,
