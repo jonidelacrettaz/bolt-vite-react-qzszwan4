@@ -541,6 +541,13 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       );
     }
 
+    // Filter by provider if admin and provider filter is set
+    if (isAdmin && providerFilter && providerFilter !== '') {
+      const selectedProviderId = parseInt(providerFilter);
+      if (!isNaN(selectedProviderId)) {
+        result = result.filter(article => article.prv === selectedProviderId);
+      }
+    }
     if (stockFilter !== 'all') {
       if (stockFilter === 'inStock') {
         result = result.filter(article => article.stk_con > 0);
@@ -595,7 +602,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     });
 
     setFilteredArticles(result);
-  }, [articles, searchTerm, stockFilter, sortColumn, sortOrder]);
+  }, [articles, searchTerm, stockFilter, providerFilter, isAdmin, sortColumn, sortOrder]);
 
   if (loading && !refreshing) {
     return (
