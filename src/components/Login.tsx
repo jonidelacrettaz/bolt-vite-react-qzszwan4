@@ -376,6 +376,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState('');
   
   const { 
     blocked, 
@@ -408,6 +412,66 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleCaptchaVerify = (success: boolean) => {
     setCaptchaVerified(success);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setResetError('Por favor, ingrese su correo electrónico primero.');
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setResetError('Por favor, ingrese un correo electrónico válido.');
+      return;
+    }
+
+    setResetLoading(true);
+    setResetError('');
+    setResetSuccess(false);
+
+    try {
+      const response = await fetch(
+        'https://hook.us1.make.com/jnj6m9wdvbn3fm8w2sev3e39ds8wp8a7',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ mail: email }),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      setResetSuccess(true);
+      setShowPasswordReset(false);
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setResetSuccess(false);
+      }, 5000);
+
+    } catch (err) {
+      const error = err as Error;
+      let errorMessage = 'Error al enviar el correo de recuperación.';
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'La solicitud tardó demasiado tiempo. Por favor, intente nuevamente.';
+      } else if (error.message.includes('fetch') || !navigator.onLine) {
+        errorMessage = 'No se pudo conectar con el servidor. Verifique su conexión.';
+      } else if (error.message.includes('servidor')) {
+        errorMessage = 'Error del servidor. Por favor, intente más tarde.';
+      }
+      
+      setResetError(errorMessage);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -469,18 +533,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         throw new Error(`Error del servidor: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: LoginResponse = await response.json();
       
       if (data.error) {
         throw new Error(data.error);
       }
       
-      if (!data.proveedor || !data.nombre) {
+      if (typeof data.proveedor === 'undefined' || typeof data.nombre === 'undefined' || typeof data.Authentico === 'undefined') {
         throw new Error('Respuesta del servidor inválida');
       }
 
-      resetAttempts();
-      onLogin(data);
+      // Check if authentication was successful
+      if (data.Authentico === 1) {
+        resetAttempts();
+        onLogin({ proveedor: data.proveedor, nombre: data.nombre });
+      } else {
+        // Authentication failed - show password reset option
+        throw new Error('Credenciales incorrectas');
+      }
     } catch (err) {
       const error = err as Error;
       let errorMessage = 'Error al iniciar sesión.';
@@ -494,17 +564,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       } else if (error.message.includes('servidor')) {
         errorMessage = `Error del servidor. Por favor, intente más tarde.`;
         setConnectionError('server');
-      } else if (error.message === 'Respuesta del servidor inválida') {
+      } else if (error.message === 'Respuesta del servidor inválida' || error.message === 'Datos de usuario incompletos') {
         errorMessage = 'Error en la respuesta del servidor. Por favor, intente más tarde.';
         setConnectionError('invalid');
-      } else {
+      } else if (error.message === 'Credenciales incorrectas') {
         errorMessage = 'Credenciales incorrectas. Por favor, verifique su correo electrónico y contraseña.';
+        setShowPasswordReset(true);
+      } else if (error.message === 'INVALID_CREDENTIALS') {
+        errorMessage = 'Error inesperado. Por favor, intente nuevamente.';
+        setShowPasswordReset(true);
+      } else {
+        errorMessage = 'Error inesperado. Por favor, intente nuevamente.';
       }
       
       setError(errorMessage);
       setCaptchaVerified(false);
       
-      if (connectionError) {
+      if (connectionError || error.message === 'INVALID_CREDENTIALS') {
         // Si es un error de conexión, no contar como intento fallido
         return;
       }
@@ -537,6 +613,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </p>
         </div>
         
+        {resetSuccess && (
+          <div className="login-success">
+            <div className="flex items-center">
+              <CheckCircle size={16} className="mr-2" />
+              <p className="login-success-text">
+                Se ha enviado un correo con las instrucciones para restablecer su contraseña.
+              </p>
+            </div>
+          </div>
+        )}
+        
         {error && (
           <div className={`login-error ${connectionError ? 'connection-error' : ''}`}>
             <div className="flex items-center">
@@ -548,6 +635,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <p className="login-error-text">{error}</p>
             </div>
           </div>
+        )}
+        
+        {showPasswordReset && (
+          <PasswordResetSection onReset={handlePasswordReset} loading={resetLoading} error={resetError} />
         )}
         
         {blocked ? (
@@ -623,6 +714,41 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </form>
         )}
       </div>
+    </div>
+  );
+};
+
+interface PasswordResetSectionProps {
+  onReset: () => void;
+  loading: boolean;
+  error: string;
+}
+
+const PasswordResetSection: React.FC<PasswordResetSectionProps> = ({ onReset, loading, error }) => {
+  return (
+    <div className="password-reset-section">
+      <div className="password-reset-header">
+        <h3 className="password-reset-title">¿Olvidó su contraseña?</h3>
+        <p className="password-reset-description">
+          Haga clic en el botón de abajo para recibir un correo con las instrucciones para restablecer su contraseña.
+        </p>
+      </div>
+      
+      {error && (
+        <div className="password-reset-error">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+      
+      <button
+        type="button"
+        onClick={onReset}
+        disabled={loading}
+        className="password-reset-button"
+      >
+        {loading ? 'Enviando...' : 'Enviar correo de recuperación'}
+      </button>
     </div>
   );
 };
