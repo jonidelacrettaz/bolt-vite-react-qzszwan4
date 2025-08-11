@@ -18,10 +18,19 @@ interface Article {
   fot_url?: string;
 }
 
+interface Provider {
+  ID: number;
+  NOM: string;
+}
+
 interface ArticlesResponse {
   count: number;
   total_count: number;
   art_prv_web_dis: Article[];
+}
+
+interface ProvidersResponse {
+  ent_m: Provider[];
 }
 
 interface ArticlesProps {
@@ -32,7 +41,9 @@ interface ArticlesProps {
 const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProviders, setLoadingProviders] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -65,6 +76,46 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const fetchProviders = useCallback(async () => {
+    if (!isAdmin || isOffline) return;
+
+    try {
+      setLoadingProviders(true);
+      
+      const response = await fetch(
+        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/ent_m?filter[ID_ES_PRV]&api_key=f3MM4FeX',
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const data: ProvidersResponse = await response.json();
+      
+      if (data && Array.isArray(data.ent_m)) {
+        setProviders(data.ent_m);
+      }
+    } catch (err) {
+      console.error('Error al cargar proveedores:', err);
+      // No mostramos error al usuario para no interferir con la carga de artículos
+    } finally {
+      setLoadingProviders(false);
+    }
+  }, [isAdmin, isOffline]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchProviders();
+    }
+  }, [fetchProviders]);
 
   const fetchArticles = useCallback(async (retry = false) => {
     if (isOffline) {
@@ -162,6 +213,10 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     }
   }, [providerFilter, isAdmin, providerId]);
 
+  const getProviderName = (providerId: number): string => {
+    const provider = providers.find(p => p.ID === providerId);
+    return provider ? provider.NOM : `Proveedor ${providerId}`;
+  };
   const handleRefresh = () => {
     setRefreshing(true);
     fetchArticles(false);
@@ -507,15 +562,22 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
         <div className="filters-panel">
           {isAdmin && (
             <div className="filter-group">
-              <label className="filter-label">Proveedor:</label>
-              <input
-                type="number"
-                placeholder="ID del proveedor"
+              <label className="filter-label">
+                Proveedor:
+                {loadingProviders && <span className="text-xs text-gray-500 ml-1">(Cargando...)</span>}
+              </label>
+              <select
                 value={providerFilter}
                 onChange={(e) => setProviderFilter(e.target.value)}
                 className="filter-select"
-                style={{ appearance: 'textfield' }}
-              />
+              >
+                <option value="">Seleccionar proveedor...</option>
+                {providers.map((provider) => (
+                  <option key={provider.ID} value={provider.ID.toString()}>
+                    {provider.ID} - {provider.NOM}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           <div className="filter-group">
@@ -539,7 +601,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
         Mostrando {filteredArticles.length} de {articles.length} artículos
         {isAdmin && (
           <span className="ml-2 text-secondary font-medium">
-            (Proveedor: {currentProviderId})
+            ({getProviderName(currentProviderId)})
           </span>
         )}
       </div>
