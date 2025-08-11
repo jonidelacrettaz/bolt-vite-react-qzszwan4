@@ -528,6 +528,13 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   useEffect(() => {
     let result = [...articles];
 
+    // Debug: Log para ver los datos reales
+    if (isAdmin && articles.length > 0) {
+      console.log('Debug - Primer artículo:', articles[0]);
+      console.log('Debug - Campos disponibles:', Object.keys(articles[0]));
+      console.log('Debug - Valores únicos de prv:', [...new Set(articles.map(a => a.prv))]);
+    }
+
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(
@@ -542,8 +549,11 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     // Filter by provider if admin and provider filter is set
     if (isAdmin && providerFilter && providerFilter !== '') {
       const selectedProviderId = parseInt(providerFilter);
+      console.log('Debug - Filtrando por proveedor:', selectedProviderId);
+      console.log('Debug - Artículos antes del filtro:', result.length);
       if (!isNaN(selectedProviderId)) {
         result = result.filter(article => article.prv === selectedProviderId);
+        console.log('Debug - Artículos después del filtro:', result.length);
       }
     }
 
