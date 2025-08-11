@@ -681,7 +681,250 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       </div>
 
       <div className="articles-controls">
-        <div className="search-container">
+        <div className="search-filter-container">
+          <div className="search-container">
+            <Search size={20} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, SKU o referencia..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="filter-button"
+          >
+            <Filter size={16} />
+            Filtros
+          </button>
+        </div>
+      </div>
+
+      {showFilters && (
+        <div className="filters-panel">
+          {isAdmin && (
+            <div className="filter-group">
+              <label className="filter-label">Proveedor:</label>
+              <select
+                value={providerFilter}
+                onChange={(e) => setProviderFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Seleccionar proveedor...</option>
+                {availableProviders.map((provider) => (
+                  <option key={provider.id} value={provider.id.toString()}>
+                    {provider.id} - {provider.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="filter-group">
+            <label className="filter-label">Stock:</label>
+            <select
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Todos</option>
+              <option value="inStock">En stock</option>
+              <option value="outOfStock">Sin stock</option>
+              <option value="lowStock">Stock bajo (< 5)</option>
+              <option value="highStock">Stock alto (≥ 5)</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      <div className="results-info">
+        <p>
+          Mostrando {filteredArticles.length} de {articles.length} artículos
+          {isAdmin && (
+            <span>
+              {providerFilter ? (
+                <span>
+                  {' '}(Filtrando por: {getProviderName(parseInt(providerFilter))} | 
+                  Datos de: Proveedor {currentProviderId})
+                </span>
+              ) : (
+                <span> (Proveedor {currentProviderId})</span>
+              )}
+            </span>
+          )}
+        </p>
+      </div>
+
+      {filteredArticles.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <p className="text-gray-600">No hay artículos que coincidan con los criterios de búsqueda</p>
+        </div>
+      ) : (
+        <div className="table-container">
+          <table className="articles-table">
+            <thead className="table-header">
+              <tr>
+                <th className="table-header-cell">IMAGEN</th>
+                <th 
+                  onClick={() => handleSort('ref')}
+                  className="table-header-cell sortable"
+                >
+                  SKU {getSortIndicator('ref')}
+                </th>
+                <th 
+                  onClick={() => handleSort('sku_prv')}
+                  className="table-header-cell sortable"
+                >
+                  SKU PROV. {getSortIndicator('sku_prv')}
+                </th>
+                <th 
+                  onClick={() => handleSort('name')}
+                  className="table-header-cell sortable"
+                >
+                  NOMBRE {getSortIndicator('name')}
+                </th>
+                <th 
+                  onClick={() => handleSort('stk_con')}
+                  className="table-header-cell sortable"
+                >
+                  STOCK COMPARTIDO {getSortIndicator('stk_con')}
+                </th>
+                <th 
+                  onClick={() => handleSort('dep')}
+                  className="table-header-cell sortable"
+                >
+                  DEPÓSITO {getSortIndicator('dep')}
+                </th>
+                <th className="table-header-cell">PTE. RECIBIR</th>
+                <th className="table-header-cell">STOCK VENDIDO</th>
+                <th 
+                  onClick={() => handleSort('cos_net')}
+                  className="table-header-cell sortable"
+                >
+                  COSTO NETO {getSortIndicator('cos_net')}
+                </th>
+                <th className="table-header-cell">PVP</th>
+                <th 
+                  onClick={() => handleSort('mar')}
+                  className="table-header-cell sortable"
+                >
+                  MARKUP {getSortIndicator('mar')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredArticles.map((article) => (
+                <ArticleRow
+                  key={article.id}
+                  article={article}
+                  onImageClick={openImageModal}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showImageModal && selectedArticle && (
+        <div className="modal-overlay" onClick={closeImageModal}>
+          <div className="enhanced-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">{selectedArticle.name}</h3>
+              <button onClick={closeImageModal} className="modal-close">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="enhanced-modal-body">
+              {imageUrls.length > 0 ? (
+                <div className="image-viewer">
+                  <div className="main-image-container">
+                    <ProductImage 
+                      imageUrl={imageUrls[currentImageIndex]} 
+                      articleName={selectedArticle.name} 
+                    />
+                  </div>
+                  {imageUrls.length > 1 && (
+                    <>
+                      <div className="image-navigation">
+                        <button
+                          onClick={prevImage}
+                          disabled={currentImageIndex === 0}
+                          className="nav-button"
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+                        <span className="image-counter">
+                          {currentImageIndex + 1} de {imageUrls.length}
+                        </span>
+                        <button
+                          onClick={nextImage}
+                          disabled={currentImageIndex === imageUrls.length - 1}
+                          className="nav-button"
+                        >
+                          <ChevronRight size={20} />
+                        </button>
+                      </div>
+                      <div className="thumbnail-container">
+                        {imageUrls.map((url, index) => (
+                          <div
+                            key={index}
+                            className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                            onClick={() => setCurrentImageIndex(index)}
+                          >
+                            <ProductImage imageUrl={url} articleName={selectedArticle.name} />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="no-images-message">
+                  <ImageIcon size={48} />
+                  <p>No hay imágenes disponibles para este artículo</p>
+                </div>
+              )}
+              
+              <div className="product-details">
+                <div className="detail-row">
+                  <span className="detail-label">SKU</span>
+                  <span className="detail-value">{selectedArticle.ref}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">SKU Proveedor</span>
+                  <span className="detail-value">{selectedArticle.sku_prv}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Stock Compartido</span>
+                  <span className="detail-value">{formatNumber(selectedArticle.stk_con)}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Depósito</span>
+                  <span className="detail-value">{formatNumber(selectedArticle.dep)}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Costo Neto</span>
+                  <span className="detail-value">{formatCurrency(selectedArticle.cos_net)}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">PVP</span>
+                  <span className="detail-value">{formatCurrency(selectedArticle.pre_net * 1.21)}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Markup</span>
+                  <span className="detail-value">{formatPercentage(selectedArticle.mar)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Articles;
           <Search size={20} />
           <input
             type="text"

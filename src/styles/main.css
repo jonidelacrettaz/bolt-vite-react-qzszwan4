@@ -1487,31 +1487,13 @@ body {
 
 /* Hide less important columns on small screens */
 @media (max-width: 640px) {
-  .table-header-cell:nth-child(5),
-  .table-header-cell:nth-child(6),
-  .table-header-cell:nth-child(7),
-  .table-header-cell:nth-child(8),
-  .table-cell:nth-child(5),
-  .table-cell:nth-child(6),
-  .table-cell:nth-child(7),
-  .table-cell:nth-child(8) {
-    display: none;
+  /* Keep all columns visible on mobile - use horizontal scroll instead */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
-  .table-header-cell:nth-child(1),
-  .table-header-cell:nth-child(2),
-  .table-header-cell:nth-child(3),
-  .table-header-cell:nth-child(4),
-  .table-header-cell:nth-child(9),
-  .table-header-cell:nth-child(10),
-  .table-header-cell:nth-child(11),
-  .table-cell:nth-child(1),
-  .table-cell:nth-child(2),
-  .table-cell:nth-child(3),
-  .table-cell:nth-child(4),
-  .table-cell:nth-child(9),
-  .table-cell:nth-child(10),
-  .table-cell:nth-child(11) {
-    display: table-cell;
+  .articles-table {
+    min-width: 1200px; /* Ensure table maintains minimum width */
   }
 }
