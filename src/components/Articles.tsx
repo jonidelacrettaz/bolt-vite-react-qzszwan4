@@ -55,6 +55,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [currentProviderId, setCurrentProviderId] = useState<number>(providerId);
   const [sortColumn, setSortColumn] = useState<keyof Article>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [articlesCache, setArticlesCache] = useState<Record<number, Article[]>>({});
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [validImageCache, setValidImageCache] = useState<Record<string, boolean>>({});
@@ -122,6 +123,14 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   }, [fetchProviders]);
 
   const fetchArticles = useCallback(async (retry = false) => {
+    // Check if we have cached articles for this provider
+    if (articlesCache[currentProviderId] && !retry) {
+      setArticles(articlesCache[currentProviderId]);
+      setFilteredArticles(articlesCache[currentProviderId]);
+      setLoading(false);
+      return;
+    }
+
     if (isOffline) {
       setError('No hay conexión a internet. Por favor, verifique su conexión.');
       setConnectionError('offline');
@@ -167,6 +176,13 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       
       setArticles(uniqueArticles);
       setFilteredArticles(uniqueArticles);
+      
+      // Cache the articles for this provider
+      setArticlesCache(prev => ({
+        ...prev,
+        [currentProviderId]: uniqueArticles
+      }));
+      
       setRetryCount(0);
     } catch (err) {
       const error = err as Error;
@@ -199,7 +215,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentProviderId, retryCount, isOffline]);
+  }, [currentProviderId, retryCount, isOffline, articlesCache]);
 
   useEffect(() => {
     fetchArticles(true);
@@ -217,13 +233,23 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     }
   }, [providerFilter, isAdmin, providerId]);
 
+  // Load articles when provider changes
+  useEffect(() => {
+    fetchArticles(false);
+  }, [currentProviderId]);
   const getProviderName = (providerId: number): string => {
     const provider = providers.find(p => p.id === providerId);
     return provider ? provider.name : `Proveedor ${providerId}`;
   };
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchArticles(false);
+    // Clear cache for current provider and force reload
+    setArticlesCache(prev => {
+      const newCache = { ...prev };
+      delete newCache[currentProviderId];
+      return newCache;
+    });
+    fetchArticles(true);
   };
 
   const ConnectionErrorState = () => {
@@ -553,7 +579,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
           <div>
             <h3 className="articles-title">Artículos</h3>
             <p className="articles-subtitle">
-              Listado de artículos disponibles
+              Listado de artículos disponibles {articlesCache[currentProviderId] ? '(desde cache)' : ''}
             </p>
           </div>
           <button 
