@@ -9,6 +9,8 @@ interface PasswordResetRequest {
 }
 
 Deno.serve(async (req: Request) => {
+  console.log('Password-reset function called');
+  
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -17,9 +19,12 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    console.log('Processing password reset request');
     const { mail }: PasswordResetRequest = await req.json();
+    console.log('Email received for reset:', mail);
 
     if (!mail) {
+      console.log('Missing email');
       return new Response(
         JSON.stringify({ error: "Email es requerido" }),
         {
@@ -35,6 +40,7 @@ Deno.serve(async (req: Request) => {
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(mail)) {
+      console.log('Invalid email format');
       return new Response(
         JSON.stringify({ error: "Formato de email inválido" }),
         {
@@ -47,8 +53,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Call webhook - URL is hidden on server side
+    // Call webhook directly with the real URL
     const webhook_url = 'https://hook.us1.make.com/jnj6m9wdvbn3fm8w2sev3e39ds8wp8a7';
+    console.log('Calling password reset webhook');
 
     const response = await fetch(webhook_url, {
       method: 'POST',
@@ -61,9 +68,14 @@ Deno.serve(async (req: Request) => {
       }),
     });
 
+    console.log('Webhook response status:', response.status);
+
     if (!response.ok) {
+      console.log('Webhook error:', response.status);
       throw new Error(`Webhook error: ${response.status}`);
     }
+
+    console.log('Password reset email sent successfully');
 
     return new Response(
       JSON.stringify({ success: true, message: 'Email de recuperación enviado' }),
