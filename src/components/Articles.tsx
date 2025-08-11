@@ -177,8 +177,6 @@ const getStockStatus = (stock: number) => {
   }
 };
 
-import { Search, Filter, Image as ImageIcon, Eye, RefreshCw, X, ChevronLeft, ChevronRight, WifiOff, AlertCircle, Clock, ServerCrash } from 'lucide-react';
-
 interface Article {
   id: number;
   name: string;
@@ -795,6 +793,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                 <td colSpan={11} className="table-cell text-center">
                   No hay artículos que coincidan con los criterios de búsqueda
                 </td>
+              </tr>
+            ) : (
               filteredArticles.map((article) => (
                 article && article.id ? (
                   <ArticleRow 
@@ -842,7 +842,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                   <>
                     <div className="main-image-container">
                       <img
-                        imageUrl={imageUrls[currentImageIndex]} 
                         src={imageUrls[currentImageIndex]}
                         alt={`${selectedArticle.name} - Imagen ${currentImageIndex + 1}`}
                         className="product-image"
