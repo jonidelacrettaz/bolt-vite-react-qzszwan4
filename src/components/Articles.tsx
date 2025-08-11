@@ -601,6 +601,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     });
 
     setFilteredArticles(result);
+  }, [articles, searchTerm, stockFilter, providerFilter, isAdmin, sortColumn, sortOrder]);
 
   if (loading && !refreshing) {
     return (
