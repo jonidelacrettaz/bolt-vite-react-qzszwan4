@@ -691,7 +691,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <input
                   id="email-address"
                   name="email"
-                  type="email"
+                  type="text"
                   autoComplete="email"
                   required
                   className="form-input"
