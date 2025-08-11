@@ -87,7 +87,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ proveedor: currentProviderId }),
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(30000),
         }
       );
 
