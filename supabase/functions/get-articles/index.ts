@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Call Sygemat API directly with the real URL
-    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?api_key=f3MM4FeX';
+    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?page%5Bnumber%5D=page%5Bnumber%5D&page%5Bsize%5D=page%5Bsize%5D&api_key=f3MM4FeX';
     console.log('Calling Sygemat API for articles');
 
     const response = await fetch(sygemat_api_url, {
