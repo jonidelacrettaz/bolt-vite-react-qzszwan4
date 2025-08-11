@@ -723,9 +723,16 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       <div className="results-info">
         Mostrando {filteredArticles.length} de {articles.length} artículos
         {isAdmin && (
-          <span className="ml-2 text-secondary font-medium">
-            ({getProviderName(currentProviderId)})
-          </span>
+          <>
+            <span className="ml-2 text-secondary font-medium">
+              ({getProviderName(currentProviderId)})
+            </span>
+            {providerFilter && (
+              <span className="ml-2 text-gray-500 text-sm">
+                - Filtrado por: {getProviderName(parseInt(providerFilter))}
+              </span>
+            )}
+          </>
         )}
       </div>
       
