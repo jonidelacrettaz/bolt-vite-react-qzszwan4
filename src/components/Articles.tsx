@@ -407,15 +407,13 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
 
   // Update current provider ID when provider filter changes
   useEffect(() => {
-    if (isAdmin && providerFilter) {
-      const newProviderId = parseInt(providerFilter);
-      if (!isNaN(newProviderId)) {
-        setCurrentProviderId(newProviderId);
-      }
-    } else if (!isAdmin) {
+    if (!isAdmin) {
+      setCurrentProviderId(providerId);
+    } else {
+      // For admin, always use the original providerId unless we want to change provider
       setCurrentProviderId(providerId);
     }
-  }, [providerFilter, isAdmin, providerId]);
+  }, [isAdmin, providerId]);
   const getProviderName = (providerId: number): string => {
     const provider = providersCache.find(p => p.id === providerId);
     return provider ? provider.name : `Proveedor ${providerId}`;
@@ -548,6 +546,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
         result = result.filter(article => article.prv === selectedProviderId);
       }
     }
+
     if (stockFilter !== 'all') {
       if (stockFilter === 'inStock') {
         result = result.filter(article => article.stk_con > 0);
@@ -602,7 +601,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     });
 
     setFilteredArticles(result);
-  }, [articles, searchTerm, stockFilter, providerFilter, isAdmin, sortColumn, sortOrder]);
 
   if (loading && !refreshing) {
     return (
