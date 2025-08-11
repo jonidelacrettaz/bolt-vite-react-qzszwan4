@@ -33,11 +33,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Call Sygemat API - URL is hidden on server side
-    const sygemat_api_url = Deno.env.get('SYGEMAT_ARTICLES_API_URL');
-    
-    if (!sygemat_api_url) {
-      throw new Error('API URL not configured');
-    }
+    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?api_key=f3MM4FeX';
 
     const response = await fetch(sygemat_api_url, {
       method: 'POST',

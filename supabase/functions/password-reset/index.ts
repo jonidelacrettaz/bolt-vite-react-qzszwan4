@@ -48,11 +48,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Call webhook - URL is hidden on server side
-    const webhook_url = Deno.env.get('SYGEMAT_PASSWORD_RESET_WEBHOOK');
-    
-    if (!webhook_url) {
-      throw new Error('Webhook URL not configured');
-    }
+    const webhook_url = 'https://hook.us1.make.com/jnj6m9wdvbn3fm8w2sev3e39ds8wp8a7';
 
     const response = await fetch(webhook_url, {
       method: 'POST',
