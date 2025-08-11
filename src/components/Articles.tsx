@@ -609,4 +609,276 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
           comparison = a.stk_con - b.stk_con;
           break;
         case 'dep':
-          comparison = a.dep -
+          comparison = a.dep - b.dep;
+          break;
+        case 'cos_net':
+          comparison = a.cos_net - b.cos_net;
+          break;
+        case 'pre_net':
+          comparison = a.pre_net - b.pre_net;
+          break;
+        case 'mar':
+          comparison = a.mar - b.mar;
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    setFilteredArticles(result);
+  }, [articles, searchTerm, stockFilter, providerFilter, isAdmin, sortColumn, sortOrder]);
+
+  if (loading) {
+    return (
+      <div className="articles-container">
+        <div className="articles-header">
+          <div className="articles-title">
+            <h2>Artículos</h2>
+            <p className="articles-subtitle">Cargando artículos...</p>
+          </div>
+        </div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Cargando artículos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="articles-container">
+        <div className="articles-header">
+          <div className="articles-title">
+            <h2>Artículos</h2>
+            <p className="articles-subtitle text-red-600">{error}</p>
+          </div>
+        </div>
+        <ConnectionErrorState />
+      </div>
+    );
+  }
+
+  return (
+    <div className="articles-container">
+      <div className="articles-header">
+        <div className="articles-title">
+          <h2>Artículos</h2>
+          <p className="articles-subtitle">
+            Listado de artículos disponibles (desde caché)
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="refresh-button"
+        >
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          Actualizar
+        </button>
+      </div>
+
+      <div className="articles-controls">
+        <div className="search-container">
+          <Search size={20} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, SKU o referencia..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="filter-button"
+        >
+          <Filter size={16} />
+          Filtros
+        </button>
+      </div>
+
+      {showFilters && (
+        <div className="filters-container">
+          {isAdmin && (
+            <div className="filter-group">
+              <label>Proveedor:</label>
+              <select
+                value={providerFilter}
+                onChange={(e) => setProviderFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">Seleccionar proveedor...</option>
+                {availableProviders.map((provider) => (
+                  <option key={provider.id} value={provider.id.toString()}>
+                    {provider.id} - {provider.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="filter-group">
+            <label>Stock:</label>
+            <select
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Todos</option>
+              <option value="inStock">En stock</option>
+              <option value="outOfStock">Sin stock</option>
+              <option value="lowStock">Stock bajo (&lt; 5)</option>
+              <option value="highStock">Stock alto (≥ 5)</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      <div className="articles-summary">
+        <p>
+          Mostrando {filteredArticles.length} de {articles.length} artículos
+          {isAdmin && (
+            <span className="provider-info">
+              {providerFilter ? (
+                <span>
+                  {' '}(Filtrando por: {getProviderName(parseInt(providerFilter))} | 
+                  Datos de: Proveedor {currentProviderId})
+                </span>
+              ) : (
+                <span> (Proveedor {currentProviderId})</span>
+              )}
+            </span>
+          )}
+        </p>
+      </div>
+
+      {filteredArticles.length === 0 ? (
+        <div className="no-results">
+          <p>No hay artículos que coincidan con los criterios de búsqueda</p>
+        </div>
+      ) : (
+        <>
+          <div className="table-container">
+            <table className="articles-table">
+              <thead>
+                <tr>
+                  <th>IMAGEN</th>
+                  <th 
+                    onClick={() => handleSort('ref')}
+                    className="sortable-header"
+                  >
+                    SKU {getSortIndicator('ref')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('sku_prv')}
+                    className="sortable-header"
+                  >
+                    SKU PROV. {getSortIndicator('sku_prv')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('name')}
+                    className="sortable-header"
+                  >
+                    NOMBRE {getSortIndicator('name')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('stk_con')}
+                    className="sortable-header"
+                  >
+                    STOCK COMPARTIDO {getSortIndicator('stk_con')}
+                  </th>
+                  <th 
+                    onClick={() => handleSort('dep')}
+                    className="sortable-header"
+                  >
+                    DEPÓSITO {getSortIndicator('dep')}
+                  </th>
+                  <th>PTE. RECIBIR</th>
+                  <th>STOCK VENDIDO</th>
+                  <th 
+                    onClick={() => handleSort('cos_net')}
+                    className="sortable-header"
+                  >
+                    COSTO NETO {getSortIndicator('cos_net')}
+                  </th>
+                  <th>PVP</th>
+                  <th 
+                    onClick={() => handleSort('mar')}
+                    className="sortable-header"
+                  >
+                    MARKUP {getSortIndicator('mar')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredArticles.map((article) => (
+                  <ArticleRow
+                    key={article.id}
+                    article={article}
+                    onImageClick={openImageModal}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {showImageModal && selectedArticle && (
+        <div className="modal-overlay" onClick={closeImageModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedArticle.name}</h3>
+              <button onClick={closeImageModal} className="modal-close">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {imageUrls.length > 0 ? (
+                <div className="image-gallery">
+                  <div className="main-image">
+                    <img
+                      src={imageUrls[currentImageIndex]}
+                      alt={`${selectedArticle.name} - Imagen ${currentImageIndex + 1}`}
+                      className="gallery-image"
+                    />
+                  </div>
+                  {imageUrls.length > 1 && (
+                    <div className="image-controls">
+                      <button
+                        onClick={prevImage}
+                        disabled={currentImageIndex === 0}
+                        className="nav-button"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <span className="image-counter">
+                        {currentImageIndex + 1} de {imageUrls.length}
+                      </span>
+                      <button
+                        onClick={nextImage}
+                        disabled={currentImageIndex === imageUrls.length - 1}
+                        className="nav-button"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="no-images">
+                  <ImageIcon size={48} />
+                  <p>No hay imágenes disponibles</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Articles;
