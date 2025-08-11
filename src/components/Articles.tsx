@@ -26,9 +26,10 @@ interface ArticlesResponse {
 
 interface ArticlesProps {
   providerId: number;
+  isAdmin?: boolean;
 }
 
-const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
+const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [stockFilter, setStockFilter] = useState<string>('all');
+  const [providerFilter, setProviderFilter] = useState<string>('');
+  const [currentProviderId, setCurrentProviderId] = useState<number>(providerId);
   const [sortColumn, setSortColumn] = useState<keyof Article>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -83,7 +86,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ proveedor: providerId }),
+          body: JSON.stringify({ proveedor: currentProviderId }),
           signal: AbortSignal.timeout(10000),
         }
       );
@@ -141,11 +144,23 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [providerId, retryCount, isOffline]);
+  }, [currentProviderId, retryCount, isOffline]);
 
   useEffect(() => {
     fetchArticles(true);
   }, [fetchArticles]);
+
+  // Update current provider ID when provider filter changes
+  useEffect(() => {
+    if (isAdmin && providerFilter) {
+      const newProviderId = parseInt(providerFilter);
+      if (!isNaN(newProviderId)) {
+        setCurrentProviderId(newProviderId);
+      }
+    } else if (!isAdmin) {
+      setCurrentProviderId(providerId);
+    }
+  }, [providerFilter, isAdmin, providerId]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -490,6 +505,19 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       
       {showFilters && (
         <div className="filters-panel">
+          {isAdmin && (
+            <div className="filter-group">
+              <label className="filter-label">Proveedor:</label>
+              <input
+                type="number"
+                placeholder="ID del proveedor"
+                value={providerFilter}
+                onChange={(e) => setProviderFilter(e.target.value)}
+                className="filter-select"
+                style={{ appearance: 'textfield' }}
+              />
+            </div>
+          )}
           <div className="filter-group">
             <label className="filter-label">Stock:</label>
             <select 
@@ -509,6 +537,11 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       
       <div className="results-info">
         Mostrando {filteredArticles.length} de {articles.length} artículos
+        {isAdmin && (
+          <span className="ml-2 text-secondary font-medium">
+            (Proveedor: {currentProviderId})
+          </span>
+        )}
       </div>
       
       {refreshing && (

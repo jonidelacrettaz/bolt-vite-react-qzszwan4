@@ -116,7 +116,10 @@ function App() {
             {/* Main Content */}
             <main className="main-content">
               {activeTab === 'articles' && providerData && (
-                <Articles providerId={providerData.proveedor} />
+                <Articles 
+                  providerId={providerData.proveedor} 
+                  isAdmin={providerData.proveedor === 9999999}
+                />
               )}
               {activeTab === 'sales' && (
                 <div className="coming-soon-container">
