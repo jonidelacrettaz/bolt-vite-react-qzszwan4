@@ -433,7 +433,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       const response = await fetch(
-        'https://hook.us1.make.com/jnj6m9wdvbn3fm8w2sev3e39ds8wp8a7',
+        import.meta.env.VITE_PASSWORD_RESET_WEBHOOK,
         {
           method: 'POST',
           headers: {
@@ -519,7 +519,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
 
       const response = await fetch(
-        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/INI_URS_VRF_3P_DAT?api_key=f3MM4FeX',
+        import.meta.env.VITE_LOGIN_API_URL,
         {
           method: 'POST',
           headers: {

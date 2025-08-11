@@ -76,7 +76,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       setConnectionError(null);
       
       const response = await fetch(
-        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/JSON_PRV?api_key=f3MM4FeX',
+        import.meta.env.VITE_ARTICLES_API_URL,
         {
           method: 'POST',
           headers: {
