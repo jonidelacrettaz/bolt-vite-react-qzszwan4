@@ -5,6 +5,12 @@ interface LoginProps {
   onLogin: (data: { proveedor: number; nombre: string }) => void;
 }
 
+interface LoginResponse {
+  proveedor: number;
+  nombre: string;
+  Authentico: number;
+}
+
 // Simple rate limiting implementation
 const useRateLimiter = () => {
   const [attempts, setAttempts] = useState<number>(0);
