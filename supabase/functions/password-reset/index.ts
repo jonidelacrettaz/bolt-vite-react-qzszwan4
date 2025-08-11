@@ -92,8 +92,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({ 
           mail,
-          url: resetUrl,
-          token: resetToken
+          url: resetUrl
         }),
         signal: AbortSignal.timeout(10000),
       });
