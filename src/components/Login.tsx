@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, WifiOff, CheckCircle } from 'lucide-react';
+import { isAdminLogin, ADMIN_CREDENTIALS } from '../config/adminCredentials';
 
 interface LoginProps {
   onLogin: (data: { proveedor: number; nombre: string }) => void;
@@ -420,6 +421,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
+    // Don't allow password reset for admin
+    if (email === 'admin') {
+      setResetError('No se puede restablecer la contraseña del administrador.');
+      return;
+    }
+
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -490,10 +497,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
     
     // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Por favor, ingrese un correo electrónico válido.');
-      return;
+    // Skip email validation for admin login
+    if (email !== 'admin') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError('Por favor, ingrese un correo electrónico válido.');
+        return;
+      }
     }
     
     // If we're showing CAPTCHA and it's not verified, show error
@@ -511,6 +521,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     setError('');
     setConnectionError(null);
+
+    // Check for admin login first
+    if (isAdminLogin(email, password)) {
+      resetAttempts();
+      onLogin({ 
+        proveedor: ADMIN_CREDENTIALS.providerId, 
+        nombre: ADMIN_CREDENTIALS.providerName 
+      });
+      return;
+    }
 
     try {
       const controller = new AbortController();
