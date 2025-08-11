@@ -19,8 +19,9 @@ interface Article {
 }
 
 interface Provider {
-  ID: number;
-  NOM: string;
+  id: number;
+  name: string;
+  es_prv: boolean;
 }
 
 interface ArticlesResponse {
@@ -30,6 +31,8 @@ interface ArticlesResponse {
 }
 
 interface ProvidersResponse {
+  count: number;
+  total_count: number;
   ent_m: Provider[];
 }
 
@@ -214,8 +217,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   }, [providerFilter, isAdmin, providerId]);
 
   const getProviderName = (providerId: number): string => {
-    const provider = providers.find(p => p.ID === providerId);
-    return provider ? provider.NOM : `Proveedor ${providerId}`;
+    const provider = providers.find(p => p.id === providerId);
+    return provider ? provider.name : `Proveedor ${providerId}`;
   };
   const handleRefresh = () => {
     setRefreshing(true);
@@ -573,8 +576,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
               >
                 <option value="">Seleccionar proveedor...</option>
                 {providers.map((provider) => (
-                  <option key={provider.ID} value={provider.ID.toString()}>
-                    {provider.ID} - {provider.NOM}
+                  <option key={provider.id} value={provider.id.toString()}>
+                    {provider.id} - {provider.name}
                   </option>
                 ))}
               </select>
