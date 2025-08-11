@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({ 
         mail,
-        url: 'https://proveedores.sygemat.com.ar/reset-password'
+        url: `${Deno.env.get('SITE_URL') || 'https://proveedores.sygemat.com.ar'}/reset-password`
       }),
     });
 

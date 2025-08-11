@@ -4,6 +4,7 @@ import { isAdminLogin, ADMIN_CREDENTIALS } from '../config/adminCredentials';
 
 interface LoginProps {
   onLogin: (data: { proveedor: number; nombre: string }) => void;
+  onShowPasswordReset?: () => void;
 }
 
 interface LoginResponse {
@@ -368,7 +369,7 @@ const ImageCaptcha: React.FC<CaptchaProps> = ({ onVerify }) => {
   );
 };
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onShowPasswordReset }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -591,10 +592,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setConnectionError('invalid');
       } else if (error.message === 'Credenciales incorrectas') {
         errorMessage = 'Credenciales incorrectas. Por favor, verifique su correo electrónico y contraseña.';
-        setShowPasswordReset(true);
+        if (onShowPasswordReset) {
+          setShowPasswordReset(true);
+        }
       } else if (error.message === 'INVALID_CREDENTIALS') {
         errorMessage = 'Error inesperado. Por favor, intente nuevamente.';
-        setShowPasswordReset(true);
+        if (onShowPasswordReset) {
+          setShowPasswordReset(true);
+        }
       } else {
         errorMessage = 'Error inesperado. Por favor, intente nuevamente.';
       }
@@ -660,7 +665,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         )}
         
         {showPasswordReset && (
-          <PasswordResetSection onReset={handlePasswordReset} loading={resetLoading} error={resetError} />
+          <PasswordResetSection 
+            onReset={handlePasswordReset} 
+            loading={resetLoading} 
+            error={resetError}
+            onShowFullReset={onShowPasswordReset}
+          />
         )}
         
         {blocked ? (
@@ -744,15 +754,21 @@ interface PasswordResetSectionProps {
   onReset: () => void;
   loading: boolean;
   error: string;
+  onShowFullReset?: () => void;
 }
 
-const PasswordResetSection: React.FC<PasswordResetSectionProps> = ({ onReset, loading, error }) => {
+const PasswordResetSection: React.FC<PasswordResetSectionProps> = ({ 
+  onReset, 
+  loading, 
+  error, 
+  onShowFullReset 
+}) => {
   return (
     <div className="password-reset-section">
       <div className="password-reset-header">
         <h3 className="password-reset-title">¿Olvidó su contraseña?</h3>
         <p className="password-reset-description">
-          Haga clic en el botón de abajo para recibir un correo con las instrucciones para restablecer su contraseña.
+          Puede solicitar un correo de recuperación o ir directamente a la página de restablecimiento si ya tiene un token.
         </p>
       </div>
       
@@ -763,14 +779,26 @@ const PasswordResetSection: React.FC<PasswordResetSectionProps> = ({ onReset, lo
         </div>
       )}
       
-      <button
-        type="button"
-        onClick={onReset}
-        disabled={loading}
-        className="password-reset-button"
-      >
-        {loading ? 'Enviando...' : 'Enviar correo de recuperación'}
-      </button>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={onReset}
+          disabled={loading}
+          className="password-reset-button"
+        >
+          {loading ? 'Enviando...' : 'Enviar correo de recuperación'}
+        </button>
+        
+        {onShowFullReset && (
+          <button
+            type="button"
+            onClick={onShowFullReset}
+            className="w-full text-center text-sm text-secondary hover:underline py-2"
+          >
+            ¿Ya tiene un token? Haga clic aquí
+          </button>
+        )}
+      </div>
     </div>
   );
 };

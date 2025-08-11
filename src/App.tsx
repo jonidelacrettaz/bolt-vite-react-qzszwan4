@@ -1,24 +1,44 @@
 import React, { useState } from 'react';
 import { Menu, LogOut, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import Login from './components/Login';
+import PasswordReset from './components/PasswordReset';
 import Articles from './components/Articles';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [providerData, setProviderData] = useState<{ proveedor: number; nombre: string } | null>(null);
   const [activeTab, setActiveTab] = useState('articles');
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
+  // Check URL for password reset
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const resetPath = window.location.pathname === '/reset-password';
+    
+    if (token || resetPath) {
+      setShowPasswordReset(true);
+    }
+  }, []);
+
   const handleLogin = (data: { proveedor: number; nombre: string }) => {
     setProviderData(data);
     setIsLoggedIn(true);
     setActiveTab('articles');
+    setShowPasswordReset(false);
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setProviderData(null);
+  };
+
+  const handleBackToLogin = () => {
+    setShowPasswordReset(false);
+    // Clear URL parameters
+    window.history.replaceState({}, document.title, window.location.pathname);
   };
 
   const toggleMenu = () => {
@@ -31,8 +51,10 @@ function App() {
 
   return (
     <div className="app-container">
-      {!isLoggedIn ? (
-        <Login onLogin={handleLogin} />
+      {showPasswordReset ? (
+        <PasswordReset onBack={handleBackToLogin} />
+      ) : !isLoggedIn ? (
+        <Login onLogin={handleLogin} onShowPasswordReset={() => setShowPasswordReset(true)} />
       ) : (
         <div className="app-layout">
           {/* Header */}
