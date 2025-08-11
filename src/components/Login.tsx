@@ -441,7 +441,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           },
           body: JSON.stringify({ 
             mail: email,
-            url: 'https://sygemat.com.ar/reset-password'
+            url: 'https://proveedores.sygemat.com.ar/reset-password'
           }),
           signal: AbortSignal.timeout(10000),
         }
