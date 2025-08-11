@@ -433,16 +433,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       const response = await fetch(
-        import.meta.env.VITE_PASSWORD_RESET_WEBHOOK,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/password-reset`,
         {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
-            mail: email,
-            url: 'https://proveedores.sygemat.com.ar/reset-password'
-          }),
+          body: JSON.stringify({ mail: email }),
           signal: AbortSignal.timeout(10000),
         }
       );
@@ -519,10 +517,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
 
       const response = await fetch(
-        import.meta.env.VITE_LOGIN_API_URL,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-login`,
         {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email, password }),

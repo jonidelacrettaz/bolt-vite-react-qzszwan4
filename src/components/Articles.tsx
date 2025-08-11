@@ -76,10 +76,11 @@ const Articles: React.FC<ArticlesProps> = ({ providerId }) => {
       setConnectionError(null);
       
       const response = await fetch(
-        import.meta.env.VITE_ARTICLES_API_URL,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-articles`,
         {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ proveedor: providerId }),
