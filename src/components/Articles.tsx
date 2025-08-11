@@ -66,6 +66,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 3000;
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -306,18 +307,24 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   };
 
   const checkImageValidity = (imageUrl: string, callback: (isValid: boolean) => void) => {
+    // Check if we already have the result cached
     if (validImageCache[imageUrl] !== undefined) {
       callback(validImageCache[imageUrl]);
       return;
     }
 
+    // Set loading state
+    setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'loading' }));
+
     const img = new Image();
     img.onload = () => {
       setValidImageCache(prev => ({ ...prev, [imageUrl]: true }));
+      setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'loaded' }));
       callback(true);
     };
     img.onerror = () => {
       setValidImageCache(prev => ({ ...prev, [imageUrl]: false }));
+      setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'error' }));
       callback(false);
     };
     img.src = imageUrl;
@@ -390,15 +397,30 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   };
 
   const ProductImage = ({ imageUrl, articleName }: { imageUrl: string, articleName: string }) => {
-    const [isValid, setIsValid] = useState<boolean | null>(null);
+    const [isValid, setIsValid] = useState<boolean | null>(
+      validImageCache[imageUrl] !== undefined ? validImageCache[imageUrl] : null
+    );
+    const [isLoading, setIsLoading] = useState(true);
     
     useEffect(() => {
       if (imageUrl) {
-        checkImageValidity(imageUrl, setIsValid);
+        // If already cached, use cached result immediately
+        if (validImageCache[imageUrl] !== undefined) {
+          setIsValid(validImageCache[imageUrl]);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Otherwise, load asynchronously
+        setIsLoading(true);
+        checkImageValidity(imageUrl, (valid) => {
+          setIsValid(valid);
+          setIsLoading(false);
+        });
       }
     }, [imageUrl]);
     
-    if (isValid === null) {
+    if (isLoading || isValid === null) {
       return (
         <div className="image-loading">
           <div className="image-spinner"></div>
@@ -416,9 +438,14 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     
     return (
       <img 
-        src={imageUrl} 
+        src={imageUrl}
         alt={articleName}
         className="product-image"
+        loading="lazy"
+        onLoad={() => {
+          setValidImageCache(prev => ({ ...prev, [imageUrl]: true }));
+          setImageLoadingStates(prev => ({ ...prev, [imageUrl]: 'loaded' }));
+        }}
       />
     );
   };

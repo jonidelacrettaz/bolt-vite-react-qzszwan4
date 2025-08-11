@@ -1035,6 +1035,7 @@ body {
   background-color: var(--color-gray-50);
   border-radius: 0.25rem;
   border: 1px solid var(--color-gray-200);
+  position: relative;
 }
 
 .image-spinner {
@@ -1044,6 +1045,42 @@ body {
   border: 2px solid transparent;
   border-top-color: var(--color-secondary);
   animation: spin 0.8s linear infinite;
+}
+
+/* Lazy loading shimmer effect */
+.image-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Smooth image fade-in */
+.product-image {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.product-image[src] {
+  opacity: 1;
 }
 
 /* Enhanced Image Modal */
