@@ -709,6 +709,8 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
             </div>
           )}
           <div className="filter-group">
+          </div>
+        </div>
       )}
 
       <div className="results-info">
