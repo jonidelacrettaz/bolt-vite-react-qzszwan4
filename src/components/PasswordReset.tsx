@@ -49,16 +49,8 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
       errors.push('Debe contener al menos una letra mayúscula');
     }
     
-    if (!/[a-z]/.test(password)) {
-      errors.push('Debe contener al menos una letra minúscula');
-    }
-    
     if (!/\d/.test(password)) {
       errors.push('Debe contener al menos un número');
-    }
-    
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push('Debe contener al menos un carácter especial');
     }
     
     return errors;
@@ -358,16 +350,8 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
                   Una letra mayúscula
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${/[a-z]/.test(newPassword) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                  Una letra minúscula
-                </li>
-                <li className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${/\d/.test(newPassword) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
                   Un número
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${/[!@#$%^&*(),.?":{}|<>]/.test(newPassword) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                  Un carácter especial
                 </li>
               </ul>
             </div>

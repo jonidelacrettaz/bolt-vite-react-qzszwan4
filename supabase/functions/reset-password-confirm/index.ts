@@ -86,15 +86,13 @@ Deno.serve(async (req: Request) => {
 
     // Validate password complexity
     const hasUpperCase = /[A-Z]/.test(newPassword);
-    const hasLowerCase = /[a-z]/.test(newPassword);
     const hasNumbers = /\d/.test(newPassword);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword);
 
-    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+    if (!hasUpperCase || !hasNumbers) {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial" 
+          error: "La contraseña debe contener al menos una mayúscula y un número" 
         }),
         {
           status: 400,
