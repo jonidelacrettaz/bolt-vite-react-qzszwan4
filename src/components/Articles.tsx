@@ -226,7 +226,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [stockFilter, setStockFilter] = useState<string>('all');
   const [providerFilter, setProviderFilter] = useState<string>('');
   const [currentProviderId, setCurrentProviderId] = useState<number>(providerId);
   const [sortColumn, setSortColumn] = useState<keyof Article>('name');
@@ -580,18 +579,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       }
     }
 
-    if (stockFilter !== 'all') {
-      if (stockFilter === 'inStock') {
-        result = result.filter(article => article.stk_con > 0);
-      } else if (stockFilter === 'outOfStock') {
-        result = result.filter(article => article.stk_con === 0);
-      } else if (stockFilter === 'lowStock') {
-        result = result.filter(article => article.stk_con > 0 && article.stk_con < 5);
-      } else if (stockFilter === 'highStock') {
-        result = result.filter(article => article.stk_con >= 5);
-      }
-    }
-
     result.sort((a, b) => {
       let comparison = 0;
       
@@ -628,7 +615,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
     });
 
     setFilteredArticles(result);
-  }, [articles, searchTerm, stockFilter, providerFilter, isAdmin, sortColumn, sortOrder]);
+  }, [articles, searchTerm, providerFilter, isAdmin, sortColumn, sortOrder]);
 
   if (loading) {
     return (
@@ -722,20 +709,6 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
             </div>
           )}
           <div className="filter-group">
-            <label className="filter-label">Stock:</label>
-            <select
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Todos</option>
-              <option value="inStock">En stock</option>
-              <option value="outOfStock">Sin stock</option>
-              <option value="lowStock">Stock bajo (&lt; 5)</option>
-              <option value="highStock">Stock alto (≥ 5)</option>
-            </select>
-          </div>
-        </div>
       )}
 
       <div className="results-info">
