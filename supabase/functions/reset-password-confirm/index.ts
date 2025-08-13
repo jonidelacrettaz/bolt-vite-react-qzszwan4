@@ -166,12 +166,12 @@ Deno.serve(async (req: Request) => {
     const data = await response.json();
     console.log('Password update response:', data);
 
-    // Check if the API returned success
-    if (data.success === false) {
+    // Check if the API returned success (1 = success, 0 = failure)
+    if (data !== 1) {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: data.message || "Error al actualizar la contraseña" 
+          error: "No se pudo actualizar la contraseña. Verifique que el email sea correcto." 
         }),
         {
           status: 400,
