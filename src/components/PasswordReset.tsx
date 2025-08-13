@@ -31,11 +31,10 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ onBack }) => {
     
     if (urlToken) {
       setToken(urlToken);
-      setStep('password');
-    }
-    
-    if (urlEmail) {
-      setEmail(decodeURIComponent(urlEmail));
+      if (urlEmail) {
+        setEmail(decodeURIComponent(urlEmail));
+        setStep('password');
+      }
     }
   }, []);
 

@@ -16,9 +16,9 @@ function App() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    const resetPath = window.location.pathname === '/reset-password';
+    const email = urlParams.get('email');
     
-    if (token || resetPath) {
+    if (token && email) {
       setShowPasswordReset(true);
     }
   }, []);

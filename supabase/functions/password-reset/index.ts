@@ -73,10 +73,13 @@ Deno.serve(async (req: Request) => {
 
     // Get the current domain from the request
     const url = new URL(req.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    
+    // Use the frontend URL instead of the Supabase function URL
+    // In production, this should be your actual domain
+    const baseUrl = 'https://bolt.new'; // This will be replaced with your actual domain
     
     // Build the complete reset URL with token and email
-    const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(mail)}`;
+    const resetUrl = `${baseUrl}?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(mail)}`;
     
     console.log('Generated reset URL:', resetUrl);
 
