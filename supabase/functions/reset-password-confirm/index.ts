@@ -123,8 +123,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Call Sygemat API to update the password
-    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/UPD_PWD_USR?api_key=f3MM4FeX';
+    // Call Sygemat API to change the password
+    const sygemat_api_url = 'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/_process/CHG_PASS_EML?api_key=f3MM4FeX';
     console.log('Calling Sygemat API to update password');
 
     const response = await fetch(sygemat_api_url, {
@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        email,
+        proveedor: email,
         password: newPassword
       }),
       signal: AbortSignal.timeout(15000),
