@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
     
     // Use the frontend URL instead of the Supabase function URL
     // In production, this should be your actual domain
-    const baseUrl = 'https://bolt.new'; // This will be replaced with your actual domain
+    const baseUrl = 'https://proveedores.foschia.com.ar'; // This will be replaced with your actual domain
     
     // Build the complete reset URL with token and email
     const resetUrl = `${baseUrl}?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(mail)}`;
