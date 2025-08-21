@@ -253,7 +253,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
       setLoadingProviders(true);
       
       const response = await fetch(
-        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/ent_m?filter[ID_ES_PRV]&api_key=f3MM4FeX',
+        'https://sygemat.com.ar/api-prod-prov/Sygemat_Dat_dat/v1/ent_m?filter[ID_ES_PRV]&page%5Bnumber%5D=page%5Bnumber%5D&page%5Bsize%5D=page%5Bsize%5D&api_key=f3MM4FeX',
         {
           method: 'GET',
           headers: {
