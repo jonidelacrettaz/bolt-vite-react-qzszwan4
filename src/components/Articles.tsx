@@ -581,7 +581,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
 
     result.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortColumn) {
         case 'name':
           comparison = a.name.localeCompare(b.name);
@@ -602,7 +602,9 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
           comparison = a.cos_net - b.cos_net;
           break;
         case 'pre_net':
-          comparison = a.pre_net - b.pre_net;
+          const pvpA = a.pre_net * 1.21;
+          const pvpB = b.pre_net * 1.21;
+          comparison = pvpA - pvpB;
           break;
         case 'mar':
           comparison = a.mar - b.mar;
@@ -610,7 +612,7 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
         default:
           comparison = 0;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -773,14 +775,19 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                 </th>
                 <th className="table-header-cell">PTE. RECIBIR</th>
                 <th className="table-header-cell">STOCK VENDIDO</th>
-                <th 
+                <th
                   onClick={() => handleSort('cos_net')}
                   className="table-header-cell sortable"
                 >
                   COSTO NETO {getSortIndicator('cos_net')}
                 </th>
-                <th className="table-header-cell">PVP</th>
-                <th 
+                <th
+                  onClick={() => handleSort('pre_net')}
+                  className="table-header-cell sortable"
+                >
+                  PVP {getSortIndicator('pre_net')}
+                </th>
+                <th
                   onClick={() => handleSort('mar')}
                   className="table-header-cell sortable"
                 >
