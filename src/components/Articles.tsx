@@ -598,6 +598,12 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
         case 'dep':
           comparison = a.dep - b.dep;
           break;
+        case 'pdt_rec':
+          comparison = a.pdt_rec - b.pdt_rec;
+          break;
+        case 'stk_con_ven':
+          comparison = a.stk_con_ven - b.stk_con_ven;
+          break;
         case 'cos_net':
           comparison = a.cos_net - b.cos_net;
           break;
@@ -773,8 +779,18 @@ const Articles: React.FC<ArticlesProps> = ({ providerId, isAdmin = false }) => {
                 >
                   DEPÓSITO {getSortIndicator('dep')}
                 </th>
-                <th className="table-header-cell">PTE. RECIBIR</th>
-                <th className="table-header-cell">STOCK VENDIDO</th>
+                <th
+                  onClick={() => handleSort('pdt_rec')}
+                  className="table-header-cell sortable"
+                >
+                  PTE. RECIBIR {getSortIndicator('pdt_rec')}
+                </th>
+                <th
+                  onClick={() => handleSort('stk_con_ven')}
+                  className="table-header-cell sortable"
+                >
+                  STOCK VENDIDO {getSortIndicator('stk_con_ven')}
+                </th>
                 <th
                   onClick={() => handleSort('cos_net')}
                   className="table-header-cell sortable"
